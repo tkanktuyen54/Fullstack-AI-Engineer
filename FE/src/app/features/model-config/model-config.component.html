@@ -1,0 +1,128 @@
+<section class="container page-space model-settings">
+  <a class="back-link" routerLink="/">← Về trang chủ</a>
+  <div class="section-heading">
+    <div>
+      <div class="eyebrow">TRỢ LÝ AI</div>
+      <h1>Cấu hình model</h1>
+      <p>Chọn model trên máy của bạn hoặc kết nối Groq cho cuộc trò chuyện.</p>
+    </div>
+  </div>
+  @if (loading()) {
+    <p role="status">Đang tải cấu hình…</p>
+  }
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+    @if (!models.config()) {
+      <button class="text-button" type="button" (click)="load()">Thử lại</button>
+    }
+  }
+  @if (notice()) {
+    <p class="settings-notice" role="status">{{ notice() }}</p>
+  }
+  @if (models.config()) {
+    <form #settingsForm="ngForm" (ngSubmit)="save()">
+      <fieldset [disabled]="loading() || saving()">
+        <div class="provider-grid">
+          <section class="provider-card" aria-labelledby="local-heading">
+            <span class="provider-tag">TRÊN MÁY CỦA BẠN</span>
+            <h2 id="local-heading">Local · Ollama</h2>
+            <p>Dùng model đã tải trong Ollama đang chạy trên máy chủ.</p>
+            <label for="local-model">Model local</label>
+            <input
+              id="local-model"
+              name="localModel"
+              [(ngModel)]="localModel"
+              required
+              maxlength="150"
+              pattern="[a-zA-Z0-9][a-zA-Z0-9._:\/\-]*"
+              placeholder="qwen3:0.6b"
+              spellcheck="false"
+            />
+            <small>Nhập đúng tên model đã có trong Ollama.</small>
+          </section>
+          <section class="provider-card" aria-labelledby="groq-heading">
+            <span class="provider-tag">DỊCH VỤ BÊN NGOÀI</span>
+            <h2 id="groq-heading">Groq</h2>
+            <p>Câu hỏi và phần dữ liệu liên quan sẽ được gửi tới Groq khi bạn chọn model này.</p>
+            <label for="groq-model">Model Groq</label>
+            <input
+              id="groq-model"
+              name="groqModel"
+              [(ngModel)]="groqModel"
+              required
+              maxlength="150"
+              pattern="[a-zA-Z0-9][a-zA-Z0-9._:\/\-]*"
+              placeholder="openai/gpt-oss-20b"
+              list="groq-model-suggestions"
+              spellcheck="false"
+            />
+            <datalist id="groq-model-suggestions">
+              <option value="openai/gpt-oss-20b"></option>
+              <option value="openai/gpt-oss-120b"></option>
+              <option value="qwen/qwen3.8-27b"></option>
+            </datalist>
+            @if (retiredGroqModel) {
+              <p class="form-error" role="alert">
+                Model Llama này đã ngừng hỗ trợ trên gói Free/Developer của Groq. Hãy đổi sang
+                openai/gpt-oss-20b hoặc một model còn hoạt động trong danh sách gợi ý.
+              </p>
+            }
+            <label for="groq-api-key">Groq API key</label>
+            <input
+              id="groq-api-key"
+              name="groqApiKey"
+              type="password"
+              [(ngModel)]="groqApiKey"
+              maxlength="256"
+              autocomplete="new-password"
+              spellcheck="false"
+              [disabled]="removeGroqApiKey"
+              [placeholder]="
+                models.config()?.groqConfigured ? 'Để trống để giữ key đã lưu' : 'Nhập API key Groq'
+              "
+              aria-describedby="groq-key-status"
+            />
+            <small id="groq-key-status">
+              {{
+                models.config()?.groqConfigured
+                  ? 'Đã lưu API key trong phiên này.'
+                  : 'Chưa cấu hình API key.'
+              }}
+              Key đã lưu sẽ không được hiển thị lại.
+            </small>
+            @if (models.config()?.groqConfigured) {
+              <label class="remove-key">
+                <input type="checkbox" name="removeGroqApiKey" [(ngModel)]="removeGroqApiKey" />
+                Xóa API key đã lưu khi bấm Lưu
+              </label>
+            }
+            <a
+              href="https://console.groq.com/docs/models"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Xem các model Groq hỗ trợ ↗
+            </a>
+          </section>
+        </div>
+        <div class="settings-default">
+          <label for="default-provider">Model mặc định cho chat</label>
+          <select id="default-provider" name="defaultProvider" [(ngModel)]="defaultProvider">
+            <option value="local">Local · {{ localModel }}</option>
+            <option value="groq">Groq · {{ groqModel }}</option>
+          </select>
+          <small>Bạn vẫn có thể đổi model trước mỗi câu hỏi trong ô chat.</small>
+        </div>
+        <div class="settings-actions">
+          <button class="button" type="submit" [disabled]="settingsForm.invalid || saving()">
+            {{ saving() ? 'Đang lưu…' : 'Lưu cấu hình' }}
+          </button>
+          <p>
+            Cấu hình lưu theo phiên trình duyệt; cần nhập lại khi đăng xuất, hết phiên hoặc khởi
+            động lại backend.
+          </p>
+        </div>
+      </fieldset>
+    </form>
+  }
+</section>

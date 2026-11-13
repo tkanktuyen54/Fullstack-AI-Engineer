@@ -49,6 +49,8 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/error")
                     .permitAll()
+                    .requestMatchers("/api/chat/config")
+                    .permitAll()
                     .requestMatchers(
                         HttpMethod.GET,
                         "/",

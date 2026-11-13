@@ -27,6 +27,7 @@ import { CourseChatComponent } from './shared/course-chat.component';
             Khám phá khóa học
           </a>
           <a routerLink="/my-learning" routerLinkActive="active">Góc học tập</a>
+          <a routerLink="/model-config" routerLinkActive="active">Cấu hình model</a>
         </nav>
         <div class="nav-actions">
           @if (auth.user(); as user) {

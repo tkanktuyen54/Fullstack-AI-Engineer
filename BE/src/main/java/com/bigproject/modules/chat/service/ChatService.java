@@ -87,7 +87,12 @@ public class ChatService {
     }
   }
 
-  public Reply answer(ChatRequest request, State state, Long userId, Progress progress) {
+  public Reply answer(
+      ChatRequest request,
+      State state,
+      Long userId,
+      ModelConfigService.Selection selection,
+      Progress progress) {
     String topic = request.topic() == null ? "courses" : request.topic();
     List<Course> catalog = "courses".equals(topic) ? courses.list("", "") : List.of();
     List<Turn> history;
@@ -96,7 +101,9 @@ public class ChatService {
     }
     AiReply result;
     try {
-      var body = new AiRequest(request.message(), request.courseSlug(), topic, history, catalog);
+      var body =
+          new AiRequest(
+              request.message(), request.courseSlug(), topic, history, catalog, selection);
       result =
           "secops".equals(topic)
               ? streamAi(body, progress)
@@ -165,7 +172,8 @@ public class ChatService {
         result.engine() == null ? "unknown" : result.engine(),
         result.answerMode() == null
             ? ("secops".equals(topic) ? "extractive" : "course")
-            : result.answerMode());
+            : result.answerMode(),
+        result.fallbackReason() == null ? "" : result.fallbackReason());
   }
 
   private AiReply streamAi(AiRequest body, Progress progress) {
@@ -273,7 +281,17 @@ public class ChatService {
   public record Turn(String role, String content) {}
 
   public record AiRequest(
-      String message, String courseSlug, String topic, List<Turn> history, List<Course> courses) {}
+      String message,
+      String courseSlug,
+      String topic,
+      List<Turn> history,
+      List<Course> courses,
+      ModelConfigService.Selection llm) {
+    @Override
+    public String toString() {
+      return "AiRequest[redacted]";
+    }
+  }
 
   public record AiCourse(
       String slug, String title, BigDecimal price, String level, String reason) {}
@@ -284,7 +302,8 @@ public class ChatService {
       List<AiCourse> courses,
       List<Source> sources,
       String engine,
-      String answerMode) {}
+      String answerMode,
+      String fallbackReason) {}
 
   public record Source(String title, String url) {}
 
@@ -303,5 +322,6 @@ public class ChatService {
       List<Suggestion> courses,
       List<Source> sources,
       String engine,
-      String answerMode) {}
+      String answerMode,
+      String fallbackReason) {}
 }

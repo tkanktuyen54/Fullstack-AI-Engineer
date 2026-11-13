@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     if metadata.get("task") != "intents":
       raise ValueError("AI_MODEL_PATH phải là checkpoint đã huấn luyện task intents.")
   app.state.llm = OllamaClient(LlmSettings.from_env())
+  app.state.groq_slot = threading.BoundedSemaphore(4)
   app.state.rag = RagService(
     app.state.knowledge,
     app.state.llm,

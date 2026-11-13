@@ -13,6 +13,9 @@ import { Router, RouterLink } from '@angular/router';
 import { ChatCourse, ChatService, ChatSource, ChatTopic } from '../core/chat.service';
 import { AuthService } from '../core/auth.service';
 import { applyAnswerEvent } from '../core/chat-stream';
+import { errorMessage } from '../core/api.service';
+import { ModelConfigService, ModelProvider } from '../core/model-config.service';
+import { answerModelLabel, modelFailureMessage } from '../core/chat-model-status';
 
 interface Message {
   id: number;
@@ -23,6 +26,9 @@ interface Message {
   topic: ChatTopic;
   answerMode?: 'course' | 'generated' | 'extractive' | 'not_found' | 'blocked';
   streaming?: boolean;
+  modelLabel?: string;
+  fallbackReason?: string;
+  engine?: string;
 }
 
 @Component({
@@ -33,6 +39,9 @@ interface Message {
 })
 export class CourseChatComponent implements OnDestroy {
   readonly auth = inject(AuthService);
+  readonly models = inject(ModelConfigService);
+  readonly answerModelLabel = answerModelLabel;
+  readonly modelFailureMessage = modelFailureMessage;
   private readonly chat = inject(ChatService);
   private readonly router = inject(Router);
   private readonly input = viewChild<ElementRef<HTMLTextAreaElement>>('questionInput');
@@ -44,6 +53,7 @@ export class CourseChatComponent implements OnDestroy {
   readonly pending = signal(false);
   readonly status = signal('');
   readonly error = signal('');
+  readonly modelsLoading = signal(false);
   readonly topic = signal<ChatTopic>('courses');
   private readonly conversations = signal<Message[]>([]);
   readonly messages = computed(() =>
@@ -63,6 +73,23 @@ export class CourseChatComponent implements OnDestroy {
         ],
   );
   question = '';
+
+  selectProvider(provider: ModelProvider): void {
+    if (this.pending() || (provider === 'groq' && !this.models.config()?.groqConfigured)) return;
+    this.models.provider.set(provider);
+    this.error.set('');
+  }
+
+  async loadModels(): Promise<void> {
+    this.modelsLoading.set(true);
+    try {
+      await this.models.load();
+    } catch (error) {
+      this.error.set(errorMessage(error));
+    } finally {
+      this.modelsLoading.set(false);
+    }
+  }
 
   selectTopic(topic: ChatTopic): void {
     if (this.pending()) return;
@@ -84,6 +111,7 @@ export class CourseChatComponent implements OnDestroy {
   toggle(): void {
     this.open.update((value) => !value);
     if (this.open()) {
+      void this.loadModels();
       setTimeout(() => this.input()?.nativeElement.focus());
       this.scroll();
     } else {
@@ -93,11 +121,22 @@ export class CourseChatComponent implements OnDestroy {
 
   async send(text = this.question): Promise<void> {
     text = text.trim();
-    if (!text || text.length > 2000 || this.pending()) return;
+    if (
+      !text ||
+      text.length > 2000 ||
+      this.pending() ||
+      this.modelsLoading() ||
+      !this.models.config()
+    )
+      return;
     this.question = '';
     this.error.set('');
     this.pending.set(true);
     const topic = this.topic();
+    const provider = this.models.provider();
+    const config = this.models.config()!;
+    const modelLabel =
+      provider === 'groq' ? `Groq · ${config.groqModel}` : `Local · ${config.localModel}`;
     this.status.set(
       topic === 'secops'
         ? 'Đang tra cứu tài liệu và tạo câu trả lời…'
@@ -108,7 +147,7 @@ export class CourseChatComponent implements OnDestroy {
       ...items.filter((item) => item.topic !== topic),
       ...items.filter((item) => item.topic === topic).slice(-30),
       { id: this.nextId++, role: 'user', text, courses: [], sources: [], topic },
-      { id: replyId, role: 'assistant', text: '', courses: [], sources: [], topic },
+      { id: replyId, role: 'assistant', text: '', courses: [], sources: [], topic, modelLabel },
     ]);
     this.controller = new AbortController();
     this.scroll();
@@ -136,10 +175,13 @@ export class CourseChatComponent implements OnDestroy {
           if (event.event === 'done')
             this.update(replyId, {
               answerMode: (event.data as Pick<Message, 'answerMode'>).answerMode,
+              fallbackReason: (event.data as Pick<Message, 'fallbackReason'>).fallbackReason,
+              engine: (event.data as Pick<Message, 'engine'>).engine,
             });
           this.scroll();
         },
         topic,
+        provider,
       );
     } catch (error) {
       this.update(replyId, { text: '', courses: [], sources: [], streaming: false });

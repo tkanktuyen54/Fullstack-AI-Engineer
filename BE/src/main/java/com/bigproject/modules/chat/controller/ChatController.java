@@ -3,6 +3,7 @@ package com.bigproject.modules.chat.controller;
 import com.bigproject.core.security.CurrentUser;
 import com.bigproject.modules.chat.dto.ChatRequest;
 import com.bigproject.modules.chat.service.ChatService;
+import com.bigproject.modules.chat.service.ModelConfigService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.io.IOException;
@@ -20,11 +21,15 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 public class ChatController {
   private final ChatService chat;
+  private final ModelConfigService config;
   private final long streamTimeoutMillis;
 
   public ChatController(
-      ChatService chat, @Value("${app.ai.stream-timeout-seconds:75}") long streamTimeoutSeconds) {
+      ChatService chat,
+      ModelConfigService config,
+      @Value("${app.ai.stream-timeout-seconds:75}") long streamTimeoutSeconds) {
     this.chat = chat;
+    this.config = config;
     this.streamTimeoutMillis = Duration.ofSeconds(streamTimeoutSeconds).toMillis();
   }
 
@@ -33,6 +38,7 @@ public class ChatController {
       @Valid @RequestBody ChatRequest request,
       HttpSession session,
       @AuthenticationPrincipal CurrentUser user) {
+    var selection = config.select(session, request.provider());
     var state = chat.begin(session);
     var emitter = new SseEmitter(streamTimeoutMillis);
     Thread.ofVirtual()
@@ -54,6 +60,7 @@ public class ChatController {
                         request,
                         state,
                         user == null ? null : user.id(),
+                        selection,
                         (event, data) -> emitter.send(SseEmitter.event().name(event).data(data)));
                 emitter.send(
                     SseEmitter.event().name("answer").data(Map.of("text", reply.message())));
@@ -69,7 +76,9 @@ public class ChatController {
                                 "engine",
                                 reply.engine(),
                                 "answerMode",
-                                reply.answerMode())));
+                                reply.answerMode(),
+                                "fallbackReason",
+                                reply.fallbackReason())));
                 emitter.complete();
               } catch (Exception ex) {
                 try {

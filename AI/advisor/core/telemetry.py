@@ -1,4 +1,4 @@
-"""Bounded operational metrics and structured logs; never log prompts or tokens."""
+"""Operational metrics and numeric usage counts; never log prompts, answer text or API keys."""
 
 import json
 import logging

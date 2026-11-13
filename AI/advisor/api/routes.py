@@ -10,7 +10,10 @@ from starlette.responses import JSONResponse, Response
 
 from ..core.security import validate_request, validate_token
 from ..core.telemetry import log_event
+from ..llm.selection import selected_llm
+from ..services.course_generation import synthesize_courses
 from ..services.courses import advise
+from ..services.rag import RagService
 from .schemas import AdviceReply, AdviceRequest
 
 router = APIRouter()
@@ -86,9 +89,17 @@ def advice(
   request: AdviceRequest, http: Request, x_advisor_token: Optional[str] = Header(default=None)
 ):
   state = runtime(request, http, x_advisor_token)
-  if request.topic == "secops":
-    return state.rag.answer(request)
-  return advise(request, state.catalog, state.model)
+  with selected_llm(state, request) as llm:
+    if request.topic == "secops":
+      return rag(state, llm).answer(request)
+    reply = advise(request, state.catalog, state.model)
+    return synthesize_courses(request, reply, llm) if request.llm else reply
+
+
+def rag(state, llm):
+  if llm is state.llm:
+    return state.rag
+  return RagService(state.knowledge, llm, state.telemetry, state.settings.stream_validation)
 
 
 @router.post("/v1/advise/stream")
@@ -98,11 +109,14 @@ def advice_stream(
   state = runtime(request, http, x_advisor_token)
 
   def events():
-    if request.topic == "secops":
-      yield from state.rag.stream(request)
-    else:
-      reply = advise(request, state.catalog, state.model)
-      yield {"type": "result", "reply": reply.model_dump(mode="json")}
+    with selected_llm(state, request) as llm:
+      if request.topic == "secops":
+        yield from rag(state, llm).stream(request)
+      else:
+        reply = advise(request, state.catalog, state.model)
+        if request.llm:
+          reply = synthesize_courses(request, reply, llm)
+        yield {"type": "result", "reply": reply.model_dump(mode="json")}
 
   def lines():
     try:

@@ -1,6 +1,6 @@
 # Khoa. — Website bán khóa học
 
-Hai project độc lập trong cùng repository:
+Các thành phần trong cùng repository:
 
 - **FE/**: Angular 22 — giao diện tiếng Việt, responsive.
 - **BE/**: Java 21 / Spring Boot 4 — giữ cấu trúc `core + modules` của Java hiện tại.
@@ -16,6 +16,39 @@ Hai project độc lập trong cùng repository:
 - Góc học tập, trình xem video, chuyển bài, đánh dấu hoàn thành và lưu tiến độ theo tài khoản.
 - Kiểm tra quyền ở backend: cần đăng nhập và có đơn đăng ký đúng khóa học để lấy URL video bài học.
 - Icon tư vấn mở sidebar bên phải toàn chiều cao; gợi ý khóa học theo chủ đề, trình độ và ngân sách qua SSE, kèm nút xem/đăng ký/vào học.
+
+## Chạy toàn bộ project bằng Docker Compose
+
+Cần Docker Desktop đang chạy. Từ thư mục gốc của repository:
+
+```bash
+docker compose up -d --build
+```
+
+File `compose.yaml` chạy frontend Angular/Nginx, backend Java 21, MySQL 8.4, dịch vụ AI Python và Ollama trong cùng mạng Docker. Dịch vụ `ollama-init` tự tải model `qwen3:0.6b`, sau đó kết thúc với mã 0; đây là trạng thái bình thường. AI chờ tải model xong, backend chờ MySQL/AI sẵn sàng và frontend chờ backend sẵn sàng. Lần đầu cần Internet để tải image, dependencies và model, nên có thể mất vài phút. Ollama mặc định chạy bằng CPU.
+
+- Website: http://localhost:4201
+- API: http://localhost:8081
+- Swagger: http://localhost:8081/swagger-ui.html
+- MySQL: `localhost:3307`, database/user `khoa`, password mặc định `khoa_local_password`.
+
+Frontend chuyển `/api` trực tiếp đến `http://backend:8080` trong mạng Docker, giữ cookie và CSRF cùng origin. AI và Ollama chỉ được truy cập trong mạng nội bộ Compose.
+
+Không bắt buộc tạo `.env`. Nếu cần đổi cổng, mật khẩu hoặc model, copy `.env.example` ở thư mục gốc thành `.env`, sửa giá trị rồi chạy lại lệnh trên. Compose gốc chỉ tự nạp `.env` tại thư mục gốc; nếu đang dùng mật khẩu riêng trong `BE/.env`, cần dùng cùng mật khẩu trong `.env` gốc để kết nối database hiện có. Đổi `AI_LLM_MODEL` sẽ dùng model đó cho cả BE/AI và bước tải model.
+
+```bash
+# Xem trạng thái và log
+docker compose ps -a
+docker compose logs -f
+
+# Dừng toàn bộ, giữ container và dữ liệu
+docker compose stop
+
+# Xóa container/network, giữ volume database và model
+docker compose down
+```
+
+Database tiếp tục dùng volume `khoa_khoa_mysql`; model lưu trong volume `khoa_ollama`, được giữ lại khi chạy `down`. Không thêm `-v` nếu muốn giữ dữ liệu. Nếu đang chạy Compose riêng bên dưới, dừng cả hai trước khi chuyển sang Compose gốc để tránh trùng cổng. Compose gốc và Compose BE cùng dùng project `khoa`, vì vậy chỉ dùng một cách chạy tại một thời điểm.
 
 ## Chạy Docker riêng cho từng đội
 

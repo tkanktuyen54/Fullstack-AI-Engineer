@@ -1,0 +1,155 @@
+# Giữ tên project để tiếp tục dùng volume MySQL khoa_khoa_mysql hiện tại.
+name: khoa
+
+services:
+  frontend:
+    image: khoa-frontend:latest
+    build: ./FE
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports:
+      - '${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-4201}:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-T', '5', '-O', '/dev/null', 'http://127.0.0.1/']
+      interval: 10s
+      timeout: 6s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    image: khoa-backend:latest
+    build: ./BE
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DATABASE_URL: jdbc:mysql://mysql:3306/khoa?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      DATABASE_USERNAME: khoa
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-khoa_local_password}
+      DEMO_CHECKOUT_ENABLED: 'true'
+      AI_SERVICE_URL: http://advisor:8000
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+      AI_LLM_MODEL: ${AI_LLM_MODEL:-qwen3:0.6b}
+      AI_READ_TIMEOUT_SECONDS: ${AI_READ_TIMEOUT_SECONDS:-60}
+      AI_STREAM_TIMEOUT_SECONDS: ${AI_STREAM_TIMEOUT_SECONDS:-75}
+    ports:
+      - '${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8081}:8080'
+    depends_on:
+      advisor:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -T
+        - '5'
+        - -O
+        - /dev/null
+        - http://127.0.0.1:8080/api/courses
+      interval: 10s
+      timeout: 6s
+      retries: 30
+      start_period: 30s
+
+  advisor:
+    image: khoa-advisor:latest
+    build: ./AI
+    restart: unless-stopped
+    stop_grace_period: 60s
+    mem_limit: ${AI_MEMORY_LIMIT:-2g}
+    environment:
+      AI_ENVIRONMENT: ${AI_ENVIRONMENT:-development}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+      AI_REQUIRE_KNOWLEDGE: ${AI_REQUIRE_KNOWLEDGE:-true}
+      AI_READINESS_REQUIRE_LLM: ${AI_READINESS_REQUIRE_LLM:-true}
+      AI_MAX_ACTIVE_REQUESTS: ${AI_MAX_ACTIVE_REQUESTS:-8}
+      AI_CATALOG_PATH: /app/imported/catalog.json
+      AI_KNOWLEDGE_PATH: /app/imported/secops.json
+      AI_MODEL_PATH: ${AI_MODEL_PATH:-}
+      AI_LLM_ENABLED: ${AI_LLM_ENABLED:-true}
+      AI_OLLAMA_URL: http://ollama:11434
+      AI_LLM_MODEL: ${AI_LLM_MODEL:-qwen3:0.6b}
+      AI_LLM_THINKING: ${AI_LLM_THINKING:-false}
+      AI_LLM_CONTEXT_TOKENS: ${AI_LLM_CONTEXT_TOKENS:-2048}
+      AI_LLM_MAX_OUTPUT_TOKENS: ${AI_LLM_MAX_OUTPUT_TOKENS:-256}
+      AI_LLM_TIMEOUT_SECONDS: ${AI_LLM_TIMEOUT_SECONDS:-45}
+      AI_LLM_KEEP_ALIVE: ${AI_LLM_KEEP_ALIVE:-1m}
+    volumes:
+      - ./AI/data:/app/imported:ro
+      - ./AI/artifacts:/app/artifacts:ro
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  # Tải model trước khi khởi động AI; trọng số được giữ trong volume của Ollama.
+  ollama-init:
+    image: ollama/ollama:latest
+    restart: 'no'
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ['pull', '${AI_LLM_MODEL:-qwen3:0.6b}']
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: khoa
+      MYSQL_USER: khoa
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-khoa_local_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_local_password}
+    ports:
+      - '127.0.0.1:${MYSQL_PORT:-3307}:3306'
+    volumes:
+      - khoa_mysql:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --protocol=TCP -h 127.0.0.1
+          -u "$${MYSQL_USER}" -D "$${MYSQL_DATABASE}" -e 'SELECT 1' >/dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  khoa_mysql:
+  ollama:

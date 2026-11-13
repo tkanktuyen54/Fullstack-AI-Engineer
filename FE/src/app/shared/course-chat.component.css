@@ -88,6 +88,32 @@
   cursor: wait;
   opacity: 0.65;
 }
+.chat-models {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px 12px;
+  font-size: 11px;
+}
+.chat-models select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+.chat-models a {
+  color: var(--green);
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+.chat-model-status {
+  margin: 0;
+  padding: 0 22px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
 .chat-intro {
   flex: 1;
   min-height: 0;

@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr, model_validator
 
 
 class Course(BaseModel):
@@ -40,12 +40,29 @@ class Turn(BaseModel):
   content: str = Field(max_length=12000)
 
 
+class ModelSelection(BaseModel):
+  provider: Literal["local", "groq"] = "local"
+  model: str = Field(min_length=1, max_length=150, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$")
+  apiKey: Optional[SecretStr] = Field(default=None, exclude=True, repr=False, max_length=256)
+
+  @model_validator(mode="after")
+  def validate_selection(self):
+    if self.provider == "local" and self.model.endswith("-cloud"):
+      raise ValueError("Chỉ hỗ trợ model Ollama local.")
+    if self.provider == "groq" and (
+      self.apiKey is None or not self.apiKey.get_secret_value().strip()
+    ):
+      raise ValueError("Groq cần API key.")
+    return self
+
+
 class AdviceRequest(BaseModel):
   message: str = Field(min_length=1, max_length=2000)
   topic: Literal["courses", "secops"] = "courses"
   courseSlug: Optional[str] = Field(default=None, pattern=r"^[a-z0-9-]{1,150}$")
   history: List[Turn] = Field(default_factory=list, max_length=12)
   courses: List[Course] = Field(default_factory=list, max_length=5000)
+  llm: Optional[ModelSelection] = None
 
 
 class Suggestion(BaseModel):

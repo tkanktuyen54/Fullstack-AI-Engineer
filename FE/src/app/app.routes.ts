@@ -3,6 +3,12 @@ import { authGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'model-config',
+    loadComponent: () =>
+      import('./features/model-config/model-config.component').then((m) => m.ModelConfigComponent),
+    title: 'Cấu hình model · Khoa.',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./features/catalog/catalog.component').then((m) => m.CatalogComponent),

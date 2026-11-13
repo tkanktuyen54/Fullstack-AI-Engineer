@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.sun.net.httpserver.HttpServer;
@@ -137,6 +139,132 @@ class ChatIntegrationTests {
     assertThat(LAST_REQUEST.get())
         .contains("599000")
         .doesNotContain("videoUrl", "password", "email");
+  }
+
+  @Test
+  void modelConfigKeepsKeysServerSideAndIsolatesSessions() throws Exception {
+    var session = new MockHttpSession();
+    mvc.perform(get("/api/chat/config").session(session))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.defaultProvider").value("local"))
+        .andExpect(jsonPath("$.groqModel").value("openai/gpt-oss-20b"))
+        .andExpect(jsonPath("$.groqConfigured").value(false));
+    String config =
+        """
+        {"defaultProvider":"groq","localModel":"qwen3:0.6b",
+        "groqModel":"openai/gpt-oss-20b","groqApiKey":"test-groq-secret"}
+        """;
+    mvc.perform(
+            put("/api/chat/config")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(config))
+        .andExpect(status().isForbidden());
+    mvc.perform(
+            put("/api/chat/config")
+                .session(session)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(config))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.groqConfigured").value(true))
+        .andExpect(jsonPath("$.groqApiKey").doesNotExist())
+        .andExpect(content().string(org.hamcrest.Matchers.not(containsString("test-groq-secret"))));
+    mvc.perform(get("/api/chat/config").session(new MockHttpSession()))
+        .andExpect(jsonPath("$.groqConfigured").value(false));
+    // Leaving the password input empty keeps the current session's credential.
+    mvc.perform(
+            put("/api/chat/config")
+                .session(session)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(config.replace("test-groq-secret", "")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.groqConfigured").value(true));
+    var chat =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"Angular\"}"))
+            .andReturn();
+    chat.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(chat))
+        .andExpect(content().string(containsString("event:done")))
+        .andExpect(content().string(org.hamcrest.Matchers.not(containsString("test-groq-secret"))));
+    assertThat(LAST_REQUEST.get())
+        .contains("\"provider\":\"groq\"", "test-groq-secret", "\"model\":\"openai/gpt-oss-20b\"");
+    var local =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"Angular\",\"provider\":\"local\"}"))
+            .andReturn();
+    local.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(local)).andExpect(status().isOk());
+    assertThat(LAST_REQUEST.get())
+        .contains("\"provider\":\"local\"")
+        .doesNotContain("test-groq-secret");
+    mvc.perform(
+            put("/api/chat/config")
+                .session(session)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+              {"defaultProvider":"local","localModel":"qwen3:0.6b",
+              "groqModel":"openai/gpt-oss-20b","removeGroqApiKey":true}
+              """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.groqConfigured").value(false));
+    mvc.perform(
+            post("/api/chat/messages")
+                .session(session)
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"Angular\",\"provider\":\"groq\"}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void modelConfigValidatesProviderModelAndRequiredCredentials() throws Exception {
+    for (String body :
+        new String[] {
+          "{\"message\":\"Angular\",\"provider\":\"unknown\"}",
+          "{\"message\":\"Angular\",\"provider\":\"groq\"}"
+        }) {
+      mvc.perform(
+              post("/api/chat/messages")
+                  .with(csrf())
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(body))
+          .andExpect(status().isBadRequest());
+    }
+    for (String model : new String[] {"../bad model", "qwen3-cloud"}) {
+      mvc.perform(
+              put("/api/chat/config")
+                  .with(csrf())
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      "{\"defaultProvider\":\"local\",\"localModel\":\""
+                          + model
+                          + "\",\"groqModel\":\"openai/gpt-oss-20b\"}"))
+          .andExpect(status().isBadRequest());
+    }
+    mvc.perform(
+            put("/api/chat/config")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+              {"defaultProvider":"groq","localModel":"qwen3:0.6b",
+              "groqModel":"openai/gpt-oss-20b"}
+              """))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

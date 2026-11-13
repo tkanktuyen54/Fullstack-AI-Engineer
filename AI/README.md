@@ -2,6 +2,28 @@
 
 Angular mở sidebar bên phải → Spring Boot giữ phiên, CSRF và dữ liệu website → Python tư vấn → SSE trả kết quả và thẻ khóa học.
 
+## Chọn model local hoặc Groq
+
+Mở **Cấu hình model** (`/model-config`) từ thanh điều hướng hoặc liên kết **Cấu hình** trong chat:
+
+1. Nhập tên model Ollama đã tải, ví dụ `qwen3:0.6b`.
+2. Nhập model Groq và API key của bạn. Mặc định gợi ý `openai/gpt-oss-20b`; có thể thay bằng ID model được tài khoản Groq hỗ trợ.
+3. Chọn nhà cung cấp mặc định rồi bấm **Lưu cấu hình**. Trong ô chat, chọn **Local** hoặc **Groq** trước mỗi câu hỏi.
+
+Cấu hình áp dụng riêng cho phiên trình duyệt, gồm cả khách chưa đăng nhập. API key chỉ lưu trong bộ nhớ phiên ở Java; API đọc cấu hình chỉ trả trạng thái đã lưu, không trả lại key. Để trống ô key khi lưu sẽ giữ key cũ; đánh dấu xóa key và chọn Local làm mặc định để gỡ key. Đăng xuất, hết phiên hoặc khởi động lại backend sẽ mất cấu hình. Chưa lưu cấu hình model vào database hay localStorage. Việc lưu xác nhận cấu hình đã được giữ trong phiên, chưa xác minh key/model với Groq.
+
+Groq được gọi từ Python qua HTTPS tại `https://api.groq.com/openai/v1/chat/completions`, dùng Bearer token và JSON mode theo [tài liệu Groq](https://console.groq.com/docs/text-chat). Khi chọn Groq, câu hỏi và các đoạn dữ liệu truy xuất liên quan được gửi ra dịch vụ này; key không được đưa vào prompt, lịch sử chat hay phản hồi về FE. Không ghi key thật vào repository hoặc file ví dụ.
+
+Cả hai chủ đề đều hỗ trợ lựa chọn này: CMC SecOps giữ cơ chế đối chiếu nguồn và streaming; khóa học dùng model để diễn đạt câu trả lời từ kết quả truy xuất, còn danh sách khóa học, giá và quyền học vẫn do hệ thống quyết định. Nếu model lỗi, bị giới hạn hoặc đầu ra không đạt kiểm tra, chat dùng kết quả truy xuất và hiển thị ghi chú. Các kiểm tra dựa trên quy tắc không bảo đảm mọi diễn đạt đều đúng nghĩa.
+
+Groq đã [ngừng hỗ trợ `llama-3.3-70b-versatile` và `llama-3.1-8b-instant` cho Free/Developer từ 16/08/2026](https://console.groq.com/docs/deprecations). Nếu phiên cũ đã lưu một trong hai model này, sửa Model Groq thành `openai/gpt-oss-20b` rồi lưu lại; để trống ô key để giữ key trong phiên. Tài khoản Enterprise có hợp đồng riêng có thể vẫn được dùng model cũ. Việc đổi mặc định của ứng dụng không tự thay lựa chọn đã lưu của người dùng.
+
+GPT-OSS được gọi với reasoning effort `low`, không trả reasoning và có ngân sách ít nhất 1.024 token cho cả reasoning/JSON. Model local giữ giới hạn token riêng như trước. Lỗi Groq được phân loại qua `fallbackReason`: `groq_authentication` (401), `groq_permission_denied` (403), `groq_model_not_found` (404), `groq_model_decommissioned`, `groq_rate_limited` (429), `groq_invalid_request`, `groq_timeout`, `groq_connection_error`, `groq_service_unavailable`. Chat hiển thị nguyên nhân và ghi rõ khi câu trả lời đến từ dữ liệu truy xuất.
+
+Log AI có sự kiện `llm_error` với mã HTTP và mã lỗi thuộc danh sách cho phép; không ghi nguyên thông báo/body lỗi của nhà cung cấp. Khi Groq gửi usage, sự kiện `llm_usage` ghi các số `prompt_tokens`, `completion_tokens`, `total_tokens`. Đây là số token do API báo, có thể bao gồm reasoning; không phải chi phí tiền. Câu trả lời bị bộ kiểm tra nguồn từ chối vẫn có thể đã dùng token. Kiểm tra bằng `docker compose logs --since=10m advisor` rồi tìm `llm_error`/`llm_usage`; lỗi `invalid_generation` khác với lỗi không gọi được API.
+
+`GET /api/chat/config` và `PUT /api/chat/config` dùng phiên Java; ghi cấu hình yêu cầu CSRF. `POST /api/chat/messages` nhận thêm `provider: "local" | "groq"`; bỏ trường này sẽ dùng mặc định của phiên. Java chọn model/key từ phiên và gửi trường `llm` trong request nội bộ tới Python. Client Python cũ bỏ `llm` vẫn dùng hành vi mặc định trước đây. Nếu chạy BE/AI riêng và đổi `AI_LLM_MODEL`, đặt cùng giá trị ở cả hai tiến trình; có thể ghi đè tên local bằng trang cấu hình.
+
 ## Cấu trúc dự án
 
 `advisor/app.py` là điểm chạy ASGI; các phần API, cấu hình, nhập dữ liệu, truy xuất, LLM và huấn luyện nằm trong các package riêng. Xem [sơ đồ thư mục, trách nhiệm và nguồn tham khảo](docs/architecture.md). Dữ liệu vẫn ở `data/`, checkpoint TinyGPT ở `artifacts/`, trọng số Qwen do Ollama quản lý bên ngoài repository.

@@ -72,19 +72,22 @@ class RagService:
     return fallback.model_copy(
       update={
         "message": result.answer.strip(),
-        "engine": "secops-bm25+ollama/" + self.llm.settings.model,
+        "engine": self._engine(),
         "answerMode": "generated",
       }
     )
 
   @staticmethod
   def _fallback(fallback, error):
-    reason = {
-      ModelUnavailable: "model_unavailable",
-      ModelBusy: "model_busy",
-      InvalidGeneration: "invalid_generation",
-    }[type(error)]
+    reason = (
+      error.reason
+      if isinstance(error, ModelUnavailable)
+      else {ModelBusy: "model_busy", InvalidGeneration: "invalid_generation"}[type(error)]
+    )
     return fallback.model_copy(update={"fallbackReason": reason})
+
+  def _engine(self):
+    return "secops-bm25+" + self.llm.provider + "/" + self.llm.settings.model
 
   def stream(self, request):
     started = time.monotonic()
@@ -131,7 +134,7 @@ class RagService:
             reply = fallback.model_copy(
               update={
                 "message": result.answer.strip(),
-                "engine": "secops-bm25+ollama/" + self.llm.settings.model,
+                "engine": self._engine(),
                 "answerMode": "generated",
               }
             )

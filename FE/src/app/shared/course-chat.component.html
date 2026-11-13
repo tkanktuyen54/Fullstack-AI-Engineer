@@ -35,6 +35,25 @@
         CMC SecOps
       </button>
     </div>
+    <div class="chat-models">
+      <label for="chat-model">Model</label>
+      <select
+        id="chat-model"
+        [ngModel]="models.provider()"
+        (ngModelChange)="selectProvider($event)"
+        [disabled]="pending() || modelsLoading() || !models.config()"
+      >
+        <option value="local">Local · {{ models.config()?.localModel || 'Ollama' }}</option>
+        <option value="groq" [disabled]="!models.config()?.groqConfigured">
+          Groq · {{ models.config()?.groqModel || 'Chưa cấu hình' }}
+          {{ models.config()?.groqConfigured ? '' : '(cần API key)' }}
+        </option>
+      </select>
+      <a routerLink="/model-config" (click)="toggle()">Cấu hình</a>
+    </div>
+    @if (modelsLoading()) {
+      <p class="chat-model-status" role="status">Đang tải model…</p>
+    }
     @if (messages().length === 0) {
       <div class="chat-intro">
         <div class="chat-welcome">
@@ -66,7 +85,11 @@
         </div>
         <div class="chat-prompts" aria-label="Câu hỏi gợi ý">
           @for (prompt of prompts(); track prompt) {
-            <button type="button" (click)="send(prompt)">
+            <button
+              type="button"
+              [disabled]="modelsLoading() || !models.config()"
+              (click)="send(prompt)"
+            >
               {{ prompt }}
               <span aria-hidden="true">↗</span>
             </button>
@@ -86,14 +109,18 @@
         @for (message of messages(); track message.id) {
           @if (message.text || message.courses.length) {
             <article class="chat-message" [class.chat-user]="message.role === 'user'">
-              <span class="chat-speaker">{{ message.role === 'user' ? 'Bạn' : '✦ Khoa' }}</span>
+              <span class="chat-speaker">
+                {{ message.role === 'user' ? 'Bạn' : '✦ Khoa · ' + answerModelLabel(message) }}
+              </span>
               @if (message.text) {
                 <p>{{ message.text }}</p>
               }
               @if (message.streaming) {
                 <p class="chat-answer-note">Đang tạo và đối chiếu với tài liệu…</p>
               } @else if (message.answerMode === 'generated') {
-                <p class="chat-answer-note">AI tổng hợp từ tài liệu. Hãy đối chiếu nguồn.</p>
+                <p class="chat-answer-note">
+                  AI tổng hợp từ dữ liệu tham khảo. Hãy đối chiếu nguồn.
+                </p>
               } @else if (message.answerMode === 'extractive') {
                 <p class="chat-answer-note">Trích trực tiếp từ tài liệu.</p>
               }
@@ -106,6 +133,11 @@
                     </a>
                   }
                 </div>
+              }
+              @if (message.fallbackReason) {
+                <p class="chat-answer-note">
+                  {{ modelFailureMessage(message.fallbackReason) }} Đang dùng dữ liệu truy xuất.
+                </p>
               }
               @for (course of message.courses; track course.slug) {
                 <div class="chat-course">
@@ -169,7 +201,7 @@
               ? 'Hỏi về SIEM, Threat Hunting, truy vấn SQL…'
               : 'Hỏi về khóa học, lộ trình, học phí…'
           "
-          [disabled]="pending()"
+          [disabled]="pending() || modelsLoading() || !models.config()"
           (keydown.enter)="onEnter($event)"
         ></textarea>
         <div class="chat-composer-actions">
@@ -180,7 +212,11 @@
                 : 'Chọn đúng khóa học, bắt đầu điều mới.'
             }}
           </span>
-          <button type="submit" [disabled]="pending() || !question.trim()" aria-label="Gửi câu hỏi">
+          <button
+            type="submit"
+            [disabled]="pending() || modelsLoading() || !models.config() || !question.trim()"
+            aria-label="Gửi câu hỏi"
+          >
             ↑
           </button>
         </div>
