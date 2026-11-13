@@ -11,6 +11,8 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class ChatIntegrationTests {
   private static final AtomicReference<String> LAST_REQUEST = new AtomicReference<>();
+  private static final CountDownLatch RELEASE_STREAM = new CountDownLatch(1);
   private static final HttpServer AI = startAi();
   @Autowired MockMvc mvc;
 
@@ -52,13 +55,40 @@ class ChatIntegrationTests {
             if (request.contains("\"topic\":\"secops\"")) {
               body =
                   """
-                  {"message":"Threat Hunting cho phép chủ động truy vấn dữ liệu.","intent":"documentation","courses":[],"sources":[
+                  {"message":"Threat Hunting cho phép chủ động truy vấn dữ liệu.","intent":"documentation","engine":"secops-bm25+ollama/qwen3:0.6b","answerMode":"generated","courses":[],"sources":[
                     {"title":"Threat Hunting — Tổng quan","url":"https://docs.cmctelecom.io/vi/secops/threat-hunting/overview#threat-hunting-l%C3%A0-g%C3%AC"},
                     {"title":"Bad script","url":"javascript:alert(1)"},
                     {"title":"Bad host","url":"https://docs.cmctelecom.io.evil.test/vi/secops/overview"},
                     {"title":"Bad path","url":"https://docs.cmctelecom.io/vi/secops/%2e%2e/%2e%2e/admin"}
                   ]}
                   """;
+            }
+            if (exchange.getRequestURI().getPath().endsWith("/stream")) {
+              exchange.getResponseHeaders().set("Content-Type", "application/x-ndjson");
+              exchange.sendResponseHeaders(200, 0);
+              var output = exchange.getResponseBody();
+              output.write(
+                  ("{\"type\":\"status\",\"message\":\"Đang tạo câu trả lời…\"}\n"
+                          + "{\"type\":\"delta\",\"text\":\"Threat Hunting \"}\n")
+                      .getBytes(StandardCharsets.UTF_8));
+              output.flush();
+              if (request.contains("simulate-stream-pause")) {
+                try {
+                  RELEASE_STREAM.await(5, TimeUnit.SECONDS);
+                } catch (InterruptedException ex) {
+                  Thread.currentThread().interrupt();
+                }
+              }
+              if (!request.contains("simulate-stream-failure")) {
+                output.write(
+                    ("{\"type\":\"delta\",\"text\":\"cho phép truy vấn dữ liệu.\"}\n"
+                            + "{\"type\":\"result\",\"reply\":"
+                            + body.replace("\n", "").replace("\r", "").strip()
+                            + "}\n")
+                        .getBytes(StandardCharsets.UTF_8));
+              }
+              exchange.close();
+              return;
             }
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
@@ -175,10 +205,13 @@ class ChatIntegrationTests {
     mvc.perform(asyncDispatch(docs))
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("event:sources")))
+        .andExpect(content().string(containsString("event:answer_delta")))
         .andExpect(content().string(containsString("https://docs.cmctelecom.io/vi/secops/")))
         .andExpect(content().string(org.hamcrest.Matchers.not(containsString("javascript:"))))
         .andExpect(content().string(org.hamcrest.Matchers.not(containsString("evil.test"))))
         .andExpect(content().string(org.hamcrest.Matchers.not(containsString("%2e%2e"))))
+        .andExpect(content().string(containsString("\"engine\":\"secops-bm25+ollama/qwen3:0.6b\"")))
+        .andExpect(content().string(containsString("\"answerMode\":\"generated\"")))
         .andExpect(content().string(containsString("event:done")));
     assertThat(LAST_REQUEST.get()).contains("\"courses\":[]", "\"history\":[]");
 
@@ -216,6 +249,65 @@ class ChatIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"SIEM\",\"topic\":\"unknown\"}"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void forwardsDeltasBeforeTheAiStreamFinishes() throws Exception {
+    var result =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"simulate-stream-pause\",\"topic\":\"secops\"}"))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+    try {
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+      while (!result.getResponse().getContentAsString().contains("event:answer_delta")
+          && System.nanoTime() < deadline) {
+        Thread.sleep(10);
+      }
+      assertThat(result.getResponse().getContentAsString())
+          .contains("event:answer_delta")
+          .doesNotContain("event:done", "event:answer\n");
+    } finally {
+      RELEASE_STREAM.countDown();
+    }
+    result.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(result))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("event:done")));
+  }
+
+  @Test
+  void interruptedStreamDoesNotCommitDraftHistoryAndReleasesSession() throws Exception {
+    var session = new MockHttpSession();
+    var interrupted =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"simulate-stream-failure\",\"topic\":\"secops\"}"))
+            .andReturn();
+    interrupted.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(interrupted))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("event:answer_delta")))
+        .andExpect(content().string(containsString("event:error")));
+    var next =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"Threat Hunting là gì?\",\"topic\":\"secops\"}"))
+            .andReturn();
+    next.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(next))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("event:done")));
+    assertThat(LAST_REQUEST.get()).contains("\"history\":[]");
   }
 
   @Test

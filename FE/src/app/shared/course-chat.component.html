@@ -90,6 +90,13 @@
               @if (message.text) {
                 <p>{{ message.text }}</p>
               }
+              @if (message.streaming) {
+                <p class="chat-answer-note">Đang tạo và đối chiếu với tài liệu…</p>
+              } @else if (message.answerMode === 'generated') {
+                <p class="chat-answer-note">AI tổng hợp từ tài liệu. Hãy đối chiếu nguồn.</p>
+              } @else if (message.answerMode === 'extractive') {
+                <p class="chat-answer-note">Trích trực tiếp từ tài liệu.</p>
+              }
               @if (message.sources.length) {
                 <div class="chat-sources" aria-label="Nguồn tài liệu">
                   <span>Nguồn tài liệu</span>
@@ -181,7 +188,7 @@
       <p class="chat-footnote">
         {{
           topic() === 'secops'
-            ? 'Trích đoạn từ bản tài liệu đã nhập. Mở nguồn để xem bản mới nhất.'
+            ? 'Trả lời dựa trên tài liệu đã nhập. Mở nguồn để đối chiếu bản mới nhất.'
             : 'Thông tin tham khảo. Xác nhận giá tại trang khóa học.'
         }}
       </p>

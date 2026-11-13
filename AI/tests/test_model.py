@@ -1,7 +1,7 @@
 import torch
 
-from advisor.model import ModelConfig, TinyGPT, decode, encode, load_model, save_model
-from advisor.train import batch, split_examples, tensors, examples
+from advisor.training.model import ModelConfig, TinyGPT, decode, encode, load_model, save_model
+from advisor.training.train import batch, examples, split_examples, tensors
 
 
 def test_utf8_tokenizer_and_causal_attention():

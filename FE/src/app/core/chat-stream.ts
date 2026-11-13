@@ -3,6 +3,20 @@ export interface ChatEvent {
   data: unknown;
 }
 
+export interface StreamAnswer {
+  text: string;
+  streaming?: boolean;
+}
+
+export function applyAnswerEvent(state: StreamAnswer, event: ChatEvent): StreamAnswer {
+  if (event.event !== 'answer' && event.event !== 'answer_delta') return state;
+  const data = event.data as { text?: unknown };
+  if (!data || typeof data.text !== 'string') throw new Error('Nội dung trả lời không hợp lệ.');
+  const text = event.event === 'answer_delta' ? state.text + data.text : data.text;
+  if (text.length > 12000) throw new Error('Phản hồi của trợ lý quá dài.');
+  return { text, streaming: event.event === 'answer_delta' };
+}
+
 export async function* readChatEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();

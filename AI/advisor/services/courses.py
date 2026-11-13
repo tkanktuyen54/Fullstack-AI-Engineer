@@ -5,8 +5,8 @@ from decimal import Decimal
 import torch
 from torch.nn import functional as F
 
-from .catalog import normalize
-from .schemas import AdviceReply, AdviceRequest, Suggestion
+from ..api.schemas import AdviceReply, AdviceRequest, Suggestion
+from ..core.text import normalize
 
 STOP_WORDS = set(
   "toi minh ban em anh chi muon can hoc khoa cac mot nhung co nao gi ve cho voi va la thi de duoc tu den o tren khong nhe giup tim tuvan goi y phu hop gia bao nhieu tien ngan sach duoi toi da tam khoang nghin ngan trieu tr k vnd dong moi bat dau chua biet lap trinh co ban trung cap nang cao so sanh xem mo vao luon do nay do ay".split()

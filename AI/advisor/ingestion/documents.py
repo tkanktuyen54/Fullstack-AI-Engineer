@@ -1,22 +1,19 @@
-"""Import CMC's public documentation and retrieve cited passages without an external LLM."""
+"""Import and parse public CMC documentation without starting the API or model."""
 
 import argparse
 import json
-import math
 import re
-from collections import Counter
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from .catalog import normalize
-from .schemas import AdviceReply, AdviceRequest, DocumentSource
+from ..core.config import DEFAULT_KNOWLEDGE_PATH
 
 ORIGIN = "https://docs.cmctelecom.io"
 PREFIX = "/vi/secops/"
-DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "secops.json"
+DEFAULT_PATH = DEFAULT_KNOWLEDGE_PATH
 DEFAULT_URLS = [
   ORIGIN + PREFIX + path
   for path in (
@@ -29,12 +26,6 @@ DEFAULT_URLS = [
 ]
 MAX_BYTES = 4_000_000
 MAX_CHARS = 2200
-STOP_WORDS = set(
-  "toi minh ban em anh chi muon can xin hay giup cho biet ve la gi nao the nhu tai sao "
-  "duoc khong co nhung cac mot va voi cua trong tren tu den nay do ay thi ma se "
-  "lam cach the nao huong dan giai thich them tiep tuc bao nhieu gom nhung "
-  "theo tai lieu cmc secops tra loi cau hoi ho tro vui long o dau".split()
-)
 VOID_TAGS = {
   "area",
   "base",
@@ -245,128 +236,6 @@ def import_documents(urls: list, output: Path, fetch=fetch_document) -> dict:
   finally:
     temporary.unlink(missing_ok=True)
   return payload
-
-
-def terms(text: str) -> list:
-  text = normalize(text)
-  for pattern, expansion in (
-    (r"\bnew query\b", "tao chay truy van moi"),
-    (r"\b(?:query|queries)\b", "truy van"),
-    (r"\brun\b", "chay"),
-    (r"\bsave\b", "luu"),
-  ):
-    if re.search(pattern, text):
-      text += " " + expansion
-  if "san tim" in text or "san lung" in text:
-    text += " threat hunting"
-  return [word for word in re.findall(r"[a-z0-9_]+", text) if word not in STOP_WORDS]
-
-
-class KnowledgeBase:
-  def __init__(self, payload: dict):
-    if payload.get("version") != 1:
-      raise ValueError("Phiên bản kho tài liệu không được hỗ trợ.")
-    self.updated_at = payload["fetchedAt"]
-    self.pages = payload["pages"]
-    self.chunks = payload["chunks"]
-    for page in self.pages:
-      document_url(page)
-    for chunk in self.chunks:
-      document_url(chunk["url"])
-      if not all(isinstance(chunk[key], str) for key in ("title", "heading", "text")):
-        raise ValueError("Đoạn tài liệu không hợp lệ.")
-    self.documents = [
-      Counter(terms(chunk["text"] + " " + (chunk["title"] + " " + chunk["heading"] + " ") * 3))
-      for chunk in self.chunks
-    ]
-    frequencies = Counter(word for document in self.documents for word in document)
-    self.idf = {
-      word: math.log(1 + (len(self.chunks) - count + 0.5) / (count + 0.5))
-      for word, count in frequencies.items()
-    }
-    self.average_length = sum(sum(document.values()) for document in self.documents) / max(
-      1, len(self.documents)
-    )
-
-  @classmethod
-  def load(cls, path: Path):
-    return cls(json.loads(path.read_text(encoding="utf-8")))
-
-  def search(self, question: str, page: str = "") -> list:
-    normalized = normalize(question)
-    query = set(terms(question))
-    if not query:
-      return []
-    results = []
-    for index, (chunk, document) in enumerate(zip(self.chunks, self.documents)):
-      if page and chunk["url"].split("#")[0] != page:
-        continue
-      coverage = len(query & document.keys()) / len(query)
-      if coverage < 0.65:
-        continue
-      length = sum(document.values())
-      score = sum(
-        self.idf.get(word, 0)
-        * (document[word] * 2.2)
-        / (document[word] + 1.2 * (0.25 + 0.75 * length / self.average_length))
-        for word in query
-        if document[word]
-      )
-      heading = set(terms(chunk["heading"]))
-      if query <= heading:
-        score *= 2
-      # Match question forms to section labels, while still requiring content coverage.
-      label = normalize(chunk["heading"])
-      if "la gi" in normalized and ("la gi" in label or label == "tong quan"):
-        score *= 3
-      if re.search(r"\b(?:chay|tao|run)\b.*\btruy van\b", normalized):
-        if "/new-query#" in chunk["url"] and label == "cac buoc thuc hien":
-          score *= 3
-      if re.search(r"toi da|gioi han|bao nhieu", normalized):
-        if "gioi han" in label and re.search(r"dong|ket qua|thoi gian|chay", normalized):
-          score *= 3
-      results.append((score * coverage, index))
-    return sorted(results, reverse=True)
-
-  def answer(self, request: AdviceRequest) -> AdviceReply:
-    page = ""
-    # Resolve follow-up questions within the last cited page; explicit topics start a new search.
-    previous = [turn.content for turn in request.history if turn.role == "user"]
-    if not re.search(r"\b(?:siem|threat hunting)\b", normalize(request.message)):
-      for question in previous:
-        if re.search(r"\b(?:siem|threat hunting)\b", normalize(question)):
-          page = ""
-        prior = self.search(question, page) or self.search(question)
-        if prior:
-          page = self.chunks[prior[0][1]]["url"].split("#")[0]
-    matches = self.search(request.message, page)
-    if not matches and page:
-      matches = self.search(request.message)
-    if not matches:
-      return AdviceReply(
-        message="Mình chưa tìm thấy thông tin đủ phù hợp trong tài liệu CMC SecOps đã nhập. Bạn hãy nêu rõ tính năng hoặc nội dung cần tra cứu.",
-        intent="documentation",
-        courses=[],
-        engine="secops-bm25",
-      )
-    best = self.chunks[matches[0][1]]
-    # Keep adjacent parts of the same section together, in source order.
-    selected = [
-      chunk
-      for chunk in self.chunks
-      if chunk["url"] == best["url"] and chunk["heading"] == best["heading"]
-    ]
-    # Start at the matching part for long sections, rather than returning an unrelated prefix.
-    start = selected.index(best)
-    selected = selected[start : start + 3]
-    text = "\n\n".join(chunk["text"] for chunk in selected)
-    return AdviceReply(
-      message=f"Theo tài liệu CMC SecOps — {best['heading']}:\n\n{text}",
-      intent="documentation",
-      courses=[],
-      engine="secops-bm25",
-      sources=[DocumentSource(title=best["title"] + " — " + best["heading"], url=best["url"])],
-    )
 
 
 def main():

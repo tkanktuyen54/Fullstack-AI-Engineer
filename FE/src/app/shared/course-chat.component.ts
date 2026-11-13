@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChatCourse, ChatService, ChatSource, ChatTopic } from '../core/chat.service';
 import { AuthService } from '../core/auth.service';
+import { applyAnswerEvent } from '../core/chat-stream';
 
 interface Message {
   id: number;
@@ -20,6 +21,8 @@ interface Message {
   courses: ChatCourse[];
   sources: ChatSource[];
   topic: ChatTopic;
+  answerMode?: 'course' | 'generated' | 'extractive' | 'not_found' | 'blocked';
+  streaming?: boolean;
 }
 
 @Component({
@@ -96,7 +99,9 @@ export class CourseChatComponent implements OnDestroy {
     this.pending.set(true);
     const topic = this.topic();
     this.status.set(
-      topic === 'secops' ? 'Đang tra cứu tài liệu CMC SecOps…' : 'Đang tìm khóa học phù hợp…',
+      topic === 'secops'
+        ? 'Đang tra cứu tài liệu và tạo câu trả lời…'
+        : 'Đang tìm khóa học phù hợp…',
     );
     const replyId = this.nextId++;
     this.conversations.update((items) => [
@@ -117,19 +122,27 @@ export class CourseChatComponent implements OnDestroy {
         (event) => {
           if (event.event === 'status')
             this.status.set((event.data as { message: string }).message);
-          if (event.event === 'answer') {
-            const answer = event.data as { text: string };
-            this.update(replyId, { text: answer.text });
+          if (event.event === 'answer' || event.event === 'answer_delta') {
+            this.conversations.update((items) =>
+              items.map((item) =>
+                item.id === replyId ? { ...item, ...applyAnswerEvent(item, event) } : item,
+              ),
+            );
           }
           if (event.event === 'courses')
             this.update(replyId, { courses: event.data as ChatCourse[] });
           if (event.event === 'sources')
             this.update(replyId, { sources: event.data as ChatSource[] });
+          if (event.event === 'done')
+            this.update(replyId, {
+              answerMode: (event.data as Pick<Message, 'answerMode'>).answerMode,
+            });
           this.scroll();
         },
         topic,
       );
     } catch (error) {
+      this.update(replyId, { text: '', courses: [], sources: [], streaming: false });
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
         this.error.set(error instanceof Error ? error.message : 'Chưa kết nối được trợ lý.');
         this.question = text;

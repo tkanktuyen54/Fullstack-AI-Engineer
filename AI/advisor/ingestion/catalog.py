@@ -6,19 +6,13 @@ import json
 import os
 import re
 import tempfile
-import unicodedata
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from openpyxl import load_workbook
 
-from .schemas import Course
-
-
-def normalize(text: str) -> str:
-  text = unicodedata.normalize("NFD", str(text).lower().replace("đ", "d"))
-  return "".join(char for char in text if unicodedata.category(char) != "Mn")
-
+from ..api.schemas import Course
+from ..core.text import normalize
 
 HEADERS = {
   "ma khoa hoc": "slug",

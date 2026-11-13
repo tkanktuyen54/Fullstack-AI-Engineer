@@ -1,6 +1,46 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readChatEvents } from './chat-stream.ts';
+import { applyAnswerEvent, readChatEvents } from './chat-stream.ts';
+
+test('Answer deltas accumulate and final answer replaces a rejected draft', () => {
+  let state = { text: '', streaming: false };
+  state = applyAnswerEvent(state, {
+    event: 'answer_delta',
+    data: { text: 'Threat ' },
+  }) as typeof state;
+  state = applyAnswerEvent(state, {
+    event: 'answer_delta',
+    data: { text: 'Hunting' },
+  }) as typeof state;
+  assert.equal(state.text, 'Threat Hunting');
+  assert.equal(state.streaming, true);
+  state = applyAnswerEvent(state, {
+    event: 'answer',
+    data: { text: 'Trích đoạn đã kiểm tra.' },
+  }) as typeof state;
+  assert.deepEqual(state, { text: 'Trích đoạn đã kiểm tra.', streaming: false });
+});
+
+test('SSE yields a delta while the connection is still open', { timeout: 1000 }, async () => {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const body = new ReadableStream<Uint8Array>({
+    start(value) {
+      controller = value;
+    },
+  });
+  const events = readChatEvents(body);
+  controller.enqueue(
+    new TextEncoder().encode('event:answer_delta\ndata:{"text":"Tiếng Việt"}\n\n'),
+  );
+  assert.deepEqual((await events.next()).value, {
+    event: 'answer_delta',
+    data: { text: 'Tiếng Việt' },
+  });
+  controller.enqueue(new TextEncoder().encode('event:done\ndata:{}\n\n'));
+  controller.close();
+  assert.equal((await events.next()).value.event, 'done');
+  assert.equal((await events.next()).done, true);
+});
 
 test('SSE handles UTF-8 and CRLF split at every byte', async () => {
   const bytes = new TextEncoder().encode(

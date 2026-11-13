@@ -2,6 +2,10 @@
 
 Angular mở sidebar bên phải → Spring Boot giữ phiên, CSRF và dữ liệu website → Python tư vấn → SSE trả kết quả và thẻ khóa học.
 
+## Cấu trúc dự án
+
+`advisor/app.py` là điểm chạy ASGI; các phần API, cấu hình, nhập dữ liệu, truy xuất, LLM và huấn luyện nằm trong các package riêng. Xem [sơ đồ thư mục, trách nhiệm và nguồn tham khảo](docs/architecture.md). Dữ liệu vẫn ở `data/`, checkpoint TinyGPT ở `artifacts/`, trọng số Qwen do Ollama quản lý bên ngoài repository.
+
 ## Hỏi đáp tài liệu CMC SecOps
 
 Mở **Trợ lý AI** trên website, chọn **CMC SecOps**, rồi nhập câu hỏi như:
@@ -11,27 +15,80 @@ Mở **Trợ lý AI** trên website, chọn **CMC SecOps**, rồi nhập câu h�
 - `Làm sao chạy truy vấn mới trong Threat Hunting?`
 - `Một truy vấn trả về tối đa bao nhiêu dòng?`
 
-Kho `data/secops.json` có sẵn bản nội dung tiếng Việt của 5 trang chính thức: SIEM overview, Threat Hunting overview, Run a new query, Saved Queries và SQL User Guide. Metadata `fetchedAt` ghi thời điểm nhập thực tế. Chế độ này tìm đoạn tài liệu bằng BM25, hỗ trợ tiếng Việt có/không dấu, và trả **trích đoạn kèm liên kết đến đúng mục của tài liệu**. Câu hỏi tiếp nối sử dụng ngữ cảnh trang vừa hỏi; lịch sử SecOps và khóa học được lưu riêng trong cùng phiên.
+Kho `data/secops.json` có sẵn bản nội dung tiếng Việt của 5 trang chính thức: SIEM overview, Threat Hunting overview, Run a new query, Saved Queries và SQL User Guide. Metadata `fetchedAt` ghi thời điểm nhập thực tế. Chế độ này tìm đoạn tài liệu bằng BM25, hỗ trợ tiếng Việt có/không dấu, rồi dùng **Qwen3 0.6B chạy local qua Ollama** để tổng hợp câu trả lời kèm nguồn. Câu hỏi tiếp nối sử dụng ngữ cảnh trang vừa hỏi; lịch sử SecOps và khóa học được lưu riêng trong cùng phiên.
 
-Đây là hỏi đáp bằng truy xuất nội dung, chưa phải LLM tổng hợp/suy luận hay tự viết SQL. Không cần API key, không huấn luyện lại TinyGPT và không thực thi truy vấn trên hệ thống CMC. Khi không tìm thấy đoạn đủ phù hợp, trợ lý thông báo chưa có thông tin. So khớp từ khóa vẫn có thể chọn đoạn chưa đúng ý; người dùng nên mở nguồn để đối chiếu. Không tự tải website trong mỗi lần chat.
+Luồng mới:
+
+```text
+FE → Java /api/chat/messages → Python /v1/advise/stream
+  → guardrail đầu vào → BM25 tìm đoạn tài liệu
+  → Ollama /api/chat (qwen3:0.6b, thinking=false)
+  → kiểm tra JSON, trích dẫn bằng chứng, từ khóa và số liệu
+  → Python phát JSON lines (status, delta, result)
+  → Java chuyển ngay thành SSE (status, answer_delta)
+  → kiểm tra cuối → answer thay thế bản nháp → sources → done → FE
+```
+
+`advisor/services/rag.py` điều phối, `advisor/llm/ollama.py` gọi Ollama, `advisor/services/guardrails.py` kiểm tra đầu vào/đầu ra. Model chỉ tổng hợp từ tài liệu đã tìm được; không có công cụ để thực thi SQL hay sửa dữ liệu. Nguồn do mã Python lấy từ kho tài liệu, không lấy URL do model sinh. Guardrail yêu cầu model cung cấp một đoạn bằng chứng có thật trong context, từ chối URL và số liệu mới, đồng thời kiểm tra độ khớp từ khóa và giữ tên `events`/`entities` khi hỏi về bảng. Đây là các kiểm tra theo quy tắc, **không bảo đảm mọi câu trả lời đều đúng nghĩa**; cần đánh giá tiếng Việt và độ bám nguồn trước khi triển khai rộng.
+
+Nếu Ollama chưa chạy, chưa tải model, đang bận, hết thời gian hoặc kết quả không qua kiểm tra, trợ lý trả trích đoạn có nguồn với `answerMode=extractive` và `fallbackReason` trong API Python. Không tìm thấy tài liệu thì trả `not_found` và không gọi LLM. Yêu cầu đổi chỉ dẫn hệ thống bị phát hiện sẽ trả `blocked`. FE phân biệt rõ câu trả lời AI tổng hợp và trích trực tiếp. Model không được tải tự động trong mỗi lần chat.
+
+### Chạy Qwen3 0.6B trên máy local
+
+Cài [Ollama](https://ollama.com/download/windows), sau đó tải model một lần:
+
+```powershell
+ollama pull qwen3:0.6b
+ollama list
+```
+
+Ollama lắng nghe mặc định tại `http://127.0.0.1:11434`. API Python mặc định bật LLM với model `qwen3:0.6b`, context 2.048 token, đầu ra tối đa 256 token, `think=false`, giữ model trong RAM 1 phút sau yêu cầu cuối. Mỗi tiến trình Python chỉ cho một lượt sinh tại một thời điểm; yêu cầu khác nhận trích đoạn thay vì xếp hàng. Chỉ gửi tối đa 2 đoạn, tổng 1.400 ký tự cho model; lịch sử được dùng để tìm tài liệu nhưng không gửi nguyên cuộc trò chuyện. Câu hỏi trên 800 ký tự dùng trích đoạn để giữ ngân sách context.
+
+Model nhỏ và bản lượng tử hóa có thể trả lời sai hoặc bỏ sót ý. Bắt đầu bằng các câu hỏi có đáp án rõ trong nguồn. Không cần OpenAI API key; TinyGPT hiện có vẫn thuộc nhánh tư vấn khóa học.
+
+Cấu hình bằng biến môi trường trước khi chạy `uvicorn`; file `AI/.env.example` là mẫu, không được tự động nạp:
+
+| Biến | Mặc định | Ý nghĩa |
+| --- | --- | --- |
+| `AI_LLM_ENABLED` | `true` | `false` để chỉ dùng trích đoạn |
+| `AI_OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama local; Compose dùng `host.docker.internal` |
+| `AI_LLM_MODEL` | `qwen3:0.6b` | Model đã tải trong Ollama |
+| `AI_LLM_THINKING` | `false` | Bật thinking nếu model hỗ trợ; không đưa nội dung thinking ra FE |
+| `AI_LLM_CONTEXT_TOKENS` | `2048` | Giới hạn 1.024–8.192 token |
+| `AI_LLM_MAX_OUTPUT_TOKENS` | `256` | Giới hạn 64–1.024 token, gồm cả JSON/bằng chứng |
+| `AI_LLM_TIMEOUT_SECONDS` | `45` | Thời gian chờ model |
+| `AI_LLM_KEEP_ALIVE` | `1m` | Thời gian giữ model trong RAM |
+
+Ví dụ tắt model hoặc đổi cấu hình trên PowerShell:
+
+```powershell
+$env:AI_LLM_ENABLED = 'false'
+.\.venv\Scripts\python.exe -m uvicorn advisor.app:app --host 127.0.0.1 --port 8000
+```
+
+`/health` có thêm `llm.enabled`, `llm.model`, `llm.reachable`, `llm.available`, `llm.thinking`, `llm.contextTokens`, `llm.maxOutputTokens`. `available=true` cho biết model đã tải trong Ollama, không có nghĩa model luôn đang nằm trong RAM. Kiểm tra RAM/model đang nạp bằng `ollama ps`.
+
+Java chờ Python tối đa 60 giây (`AI_READ_TIMEOUT_SECONDS`), SSE tối đa 75 giây (`AI_STREAM_TIMEOUT_SECONDS`), proxy FE 90 giây. Nếu tăng timeout LLM, cần tăng đồng bộ các mức này. Ollama được gọi với `stream=true`; Python giải mã phần `answer` từ JSON đang sinh và phát các nhóm từ ngắn sau kiểm tra sơ bộ. Java chuyển tiếp ngay, FE nối `answer_delta` vào bản nháp. Bằng chứng và kiểm tra toàn đáp án chỉ hoàn tất ở cuối; nếu không đạt, sự kiện `answer` thay toàn bộ bản nháp bằng trích đoạn có nguồn. Nội dung đã nhìn thấy trước đó chưa được kiểm chứng đầy đủ. `thinking` và `evidence` không được phát ra giao diện. Đây là streaming trong lúc model đang sinh, không phải chia nhỏ đáp án sau khi sinh xong.
+
+Trong Docker Compose, `advisor` dùng `http://host.docker.internal:11434` để gọi Ollama trên máy host. Ollama cần lắng nghe tại địa chỉ host mà container truy cập được; nếu chỉ bind loopback và kết nối bị từ chối, cấu hình bind riêng theo [hướng dẫn Ollama](https://docs.ollama.com/faq#how-can-i-expose-ollama-on-my-network) hoặc dùng Ollama trong cùng mạng Docker và đặt `AI_OLLAMA_URL=http://ollama:11434`. Không có Ollama thì Compose vẫn chạy bằng trích đoạn. Biến LLM cho Compose nằm trong `BE/.env.example`.
 
 Cập nhật tài liệu từ thư mục `AI`, sau khi cài dependencies:
 
 ```powershell
-.\.venv\Scripts\python.exe -m advisor.knowledge
+.\.venv\Scripts\python.exe -m advisor.ingestion.documents
 ```
 
-Trên macOS/Linux, dùng `python -m advisor.knowledge` trong virtualenv. Có thể chỉ định các URL tiếng Việt khác thuộc `/vi/secops/`:
+Trên macOS/Linux, dùng `python -m advisor.ingestion.documents` trong virtualenv. Có thể chỉ định các URL tiếng Việt khác thuộc `/vi/secops/`:
 
 ```bash
-python -m advisor.knowledge https://docs.cmctelecom.io/vi/secops/siem-overview https://docs.cmctelecom.io/vi/secops/threat-hunting/overview --output data/secops.json
+python -m advisor.ingestion.documents https://docs.cmctelecom.io/vi/secops/siem-overview https://docs.cmctelecom.io/vi/secops/threat-hunting/overview --output data/secops.json
 ```
 
 Lệnh nhập **thay thế toàn bộ kho** bằng danh sách trang được chỉ định; mặc định là 5 trang nêu trên. Nếu một trang tải/phân tích lỗi, kho cũ được giữ nguyên. Công cụ chỉ tải HTTPS đúng tên miền và đường dẫn CMC SecOps, giới hạn kích thước/thời gian tải, bỏ menu, script và nút điều khiển. Nếu website đổi cấu trúc HTML, cần cập nhật bộ phân tích trước khi nhập lại.
 
 Khởi động lại dịch vụ AI sau khi nhập để nạp bản mới. Biến `AI_KNOWLEDGE_PATH` cho phép chọn file kho khác; đường dẫn mặc định được tính từ thư mục mã AI, không phụ thuộc thư mục chạy lệnh. `/health` có `knowledgePages`, `knowledgeChunks`, `knowledgeUpdatedAt`. Docker Compose mount kho từ `AI/data/secops.json`, vì vậy cập nhật file trên máy rồi restart `advisor`.
 
-API nội bộ vẫn là `POST /v1/advise`, thêm `"topic": "secops"`. Phản hồi có `message`, `intent: "documentation"`, `courses: []`, `sources: [{"title": "...", "url": "..."}]`, `engine: "secops-bm25"`. Bỏ `topic` hoặc dùng `"courses"` để tư vấn khóa học. Backend chuyển `sources` thành sự kiện SSE riêng để giao diện hiển thị nguồn có thể nhấp; CSRF và token nội bộ vẫn áp dụng.
+API `POST /v1/advise` tiếp tục trả JSON đầy đủ cho client cũ. API `POST /v1/advise/stream` trả `application/x-ndjson` cho Java ở chế độ SecOps. Cả hai nhận `"topic": "secops"` và yêu cầu cùng token nội bộ. Phản hồi cuối có `message`, `intent: "documentation"`, `courses: []`, `sources: [{"title": "...", "url": "..."}]`, `answerMode`, `fallbackReason`. `engine=secops-bm25+ollama/qwen3:0.6b` khi sinh bằng model, `secops-bm25` khi trích đoạn. Backend chỉ ghi lịch sử sau khi nhận được kết quả cuối hợp lệ, gửi `sources` riêng và chuyển `engine`/`answerMode` trong `done`. Luồng bị ngắt trước kết quả cuối sẽ không ghi bản nháp vào lịch sử. Bỏ `topic` hoặc dùng `"courses"` để tư vấn khóa học. CSRF vẫn áp dụng giữa FE và BE.
 
 ## Chạy local
 
@@ -41,7 +98,7 @@ Dùng Python 3.11 cho môi trường mới. Từ `AI`:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-python -m advisor.catalog data/courses.example.csv
+python -m advisor.ingestion.catalog data/courses.example.csv
 uvicorn advisor.app:app --host 127.0.0.1 --port 8000
 ```
 
@@ -54,9 +111,9 @@ API nội bộ `POST /v1/advise` chỉ dành cho BE. Không publish cổng Pytho
 ## Nhập Excel thật
 
 ```bash
-python -m advisor.catalog /duong-dan/khoa-hoc.xlsx --output data/catalog.json
+python -m advisor.ingestion.catalog /duong-dan/khoa-hoc.xlsx --output data/catalog.json
 # Chọn sheet cụ thể nếu cần:
-python -m advisor.catalog /duong-dan/khoa-hoc.xlsx --sheet Courses
+python -m advisor.ingestion.catalog /duong-dan/khoa-hoc.xlsx --sheet Courses
 ```
 
 Hàng đầu là tên cột. Bắt buộc `slug`, `title`, `price`; cũng chấp nhận **Mã khóa học**, **Tên khóa học**, **Giá**. `slug` là mã duy nhất dạng `python-co-ban`, cùng mã với website nếu khóa đã được bán trên website.
@@ -73,7 +130,7 @@ Quy tắc dữ liệu:
 
 ## Mô hình tự xây và huấn luyện
 
-`advisor/model.py` chứa **TinyGPT decoder-only Transformer**, tự xây từ các lớp PyTorch: byte tokenizer UTF-8, token/position embeddings, causal multi-head attention, MLP, LayerNorm và language-model head. Khởi tạo trọng số ngẫu nhiên, không tải mô hình hay tokenizer đã huấn luyện.
+`advisor/training/model.py` chứa **TinyGPT decoder-only Transformer**, tự xây từ các lớp PyTorch: byte tokenizer UTF-8, token/position embeddings, causal multi-head attention, MLP, LayerNorm và language-model head. Khởi tạo trọng số ngẫu nhiên, không tải mô hình hay tokenizer đã huấn luyện.
 
 Có ba chế độ:
 
@@ -84,7 +141,7 @@ Có ba chế độ:
 Chạy thử huấn luyện từ đầu bằng tập ví dụ nhỏ:
 
 ```bash
-python -m advisor.train --task intents --data data/intents.example.jsonl --epochs 30 --output artifacts/intents.pt
+python -m advisor.training.train --task intents --data data/intents.example.jsonl --epochs 30 --output artifacts/intents.pt
 AI_MODEL_PATH=artifacts/intents.pt uvicorn advisor.app:app --host 127.0.0.1 --port 8000
 ```
 
@@ -93,9 +150,9 @@ Tập ví dụ chỉ để kiểm tra quy trình và học nghiên cứu. Mô h�
 Để nghiên cứu mô hình sinh văn bản và tiếp tục train bằng dữ liệu riêng:
 
 ```bash
-python -m advisor.train --task text --data /duong-dan/tieng-viet.txt --epochs 10 --output artifacts/pretrain.pt
-python -m advisor.train --task chat --data /duong-dan/hoi-thoai.jsonl --resume artifacts/pretrain.pt --epochs 10 --output artifacts/chat.pt
-python -m advisor.generate --checkpoint artifacts/chat.pt --prompt '<user>
+python -m advisor.training.train --task text --data /duong-dan/tieng-viet.txt --epochs 10 --output artifacts/pretrain.pt
+python -m advisor.training.train --task chat --data /duong-dan/hoi-thoai.jsonl --resume artifacts/pretrain.pt --epochs 10 --output artifacts/chat.pt
+python -m advisor.training.generate --checkpoint artifacts/chat.pt --prompt '<user>
 Tôi muốn học Python
 <assistant>
 ' --max-tokens 150
@@ -109,7 +166,7 @@ Checkpoint `text`/`chat` dùng để nghiên cứu sinh văn bản qua CLI; dị
 
 ## SSE và thao tác khóa học
 
-FE dùng `fetch` POST, gửi cookie và CSRF token, đọc các sự kiện `status`, `answer`, `courses`, `sources`, `done`, `error`. Đây là stream sự kiện nghiệp vụ, chưa phải stream từng token văn bản của LLM. Proxy Nginx đã tắt buffering.
+FE dùng `fetch` POST, gửi cookie và CSRF token, đọc `status`, `answer_delta`, `answer`, `courses`, `sources`, `done`, `error`. `answer_delta` nối nội dung trong khi Qwen đang sinh; `answer` thay thế bằng đáp án cuối đã kiểm tra hoặc trích đoạn dự phòng. Nginx đã tắt buffering. Khi mất kết nối hoặc nhận `error`, FE xóa bản nháp chưa hoàn tất và cho phép gửi lại câu hỏi.
 
 BE giữ tối đa 12 lượt user/assistant trong phiên, giới hạn 20 câu hỏi/phút/phiên và một yêu cầu đang chạy/phiên. Bộ giới hạn này dành cho phạm vi ứng dụng hiện tại; khi mở public cần bổ sung giới hạn ở gateway để không phụ thuộc riêng vào cookie phiên.
 
@@ -134,6 +191,8 @@ ruff format --check .
 ruff check .
 # Từ thư mục gốc khi BE và AI đang chạy:
 node scripts/chat-smoke.mjs http://127.0.0.1:8080
+# Yêu cầu lượt hỏi Threat Hunting thực sự đi qua Qwen/Ollama:
+node scripts/chat-smoke.mjs http://127.0.0.1:8080 --require-llm
 ```
 
 Các test kiểm tra bộ lọc giá/trình độ, chuyển chủ đề, dữ liệu website ưu tiên Excel, giá lỗi và mã trùng, token dịch vụ, causal attention không nhìn tương lai, cập nhật trọng số thật và lưu/nạp checkpoint.

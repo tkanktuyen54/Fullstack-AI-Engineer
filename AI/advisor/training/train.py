@@ -13,9 +13,9 @@ from torch.nn import functional as F
 from .model import (
   BOS,
   EOS,
-  PAD,
-  INTENTS,
   INTENT_START,
+  INTENTS,
+  PAD,
   ModelConfig,
   TinyGPT,
   encode,

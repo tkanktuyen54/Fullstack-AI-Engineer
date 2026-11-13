@@ -3,19 +3,18 @@ from urllib.request import Request
 import pytest
 from fastapi.testclient import TestClient
 
+from advisor.api.schemas import AdviceRequest, Turn
 from advisor.app import app
-from advisor.knowledge import (
-  DEFAULT_PATH,
+from advisor.ingestion.documents import (
   DEFAULT_URLS,
   MAX_CHARS,
-  KnowledgeBase,
   SameSiteRedirect,
   document_url,
   import_documents,
   parse_document,
   split_passage,
 )
-from advisor.schemas import AdviceRequest, Turn
+from advisor.retrieval.knowledge import DEFAULT_PATH, KnowledgeBase
 
 HTML = """
 <html><body><nav>Điều hướng không phải nội dung</nav><main>
@@ -135,6 +134,7 @@ def test_missing_information_returns_no_citation_or_fabricated_answer(knowledge,
 
 
 def test_api_routes_secops_independently_of_courses_and_requires_service_token(monkeypatch):
+  monkeypatch.setenv("AI_LLM_ENABLED", "false")
   monkeypatch.setenv("AI_SERVICE_TOKEN", "test-secret")
   monkeypatch.setenv("AI_KNOWLEDGE_PATH", str(DEFAULT_PATH))
   with TestClient(app) as client:
@@ -150,6 +150,7 @@ def test_api_routes_secops_independently_of_courses_and_requires_service_token(m
 
 
 def test_missing_knowledge_has_explicit_error_and_does_not_break_course_mode(monkeypatch, tmp_path):
+  monkeypatch.setenv("AI_LLM_ENABLED", "false")
   monkeypatch.delenv("AI_SERVICE_TOKEN", raising=False)
   monkeypatch.setenv("AI_KNOWLEDGE_PATH", str(tmp_path / "missing.json"))
   with TestClient(app) as client:

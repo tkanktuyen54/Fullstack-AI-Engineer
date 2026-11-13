@@ -179,6 +179,11 @@
   margin-left: auto;
   max-width: 88%;
 }
+.chat-message > .chat-answer-note {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
 .chat-user .chat-speaker {
   text-align: right;
 }

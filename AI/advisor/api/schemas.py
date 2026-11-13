@@ -67,3 +67,5 @@ class AdviceReply(BaseModel):
   courses: List[Suggestion]
   engine: str
   sources: List[DocumentSource] = Field(default_factory=list)
+  answerMode: Literal["course", "generated", "extractive", "not_found", "blocked"] = "course"
+  fallbackReason: Optional[str] = None

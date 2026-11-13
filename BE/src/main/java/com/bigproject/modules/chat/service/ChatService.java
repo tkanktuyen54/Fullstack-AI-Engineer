@@ -5,9 +5,13 @@ import com.bigproject.modules.course.entity.Course;
 import com.bigproject.modules.course.service.CourseService;
 import com.bigproject.modules.enrollment.repository.EnrollmentRepository;
 import jakarta.servlet.http.HttpSession;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,11 +22,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class ChatService {
@@ -30,21 +36,25 @@ public class ChatService {
   private final CourseService courses;
   private final EnrollmentRepository enrollments;
   private final RestClient ai;
+  private final ObjectMapper json;
 
   public ChatService(
       CourseService courses,
       EnrollmentRepository enrollments,
+      ObjectMapper json,
       @Value("${app.ai.base-url:http://127.0.0.1:8000}") String baseUrl,
-      @Value("${app.ai.token:}") String token) {
+      @Value("${app.ai.token:}") String token,
+      @Value("${app.ai.read-timeout-seconds:60}") long readTimeoutSeconds) {
     this.courses = courses;
     this.enrollments = enrollments;
+    this.json = json;
     var factory =
         new JdkClientHttpRequestFactory(
             HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(3))
                 .build());
-    factory.setReadTimeout(Duration.ofSeconds(15));
+    factory.setReadTimeout(Duration.ofSeconds(readTimeoutSeconds));
     ai =
         RestClient.builder()
             .baseUrl(baseUrl)
@@ -77,7 +87,7 @@ public class ChatService {
     }
   }
 
-  public Reply answer(ChatRequest request, State state, Long userId) {
+  public Reply answer(ChatRequest request, State state, Long userId, Progress progress) {
     String topic = request.topic() == null ? "courses" : request.topic();
     List<Course> catalog = "courses".equals(topic) ? courses.list("", "") : List.of();
     List<Turn> history;
@@ -86,12 +96,11 @@ public class ChatService {
     }
     AiReply result;
     try {
+      var body = new AiRequest(request.message(), request.courseSlug(), topic, history, catalog);
       result =
-          ai.post()
-              .uri("/v1/advise")
-              .body(new AiRequest(request.message(), request.courseSlug(), topic, history, catalog))
-              .retrieve()
-              .body(AiReply.class);
+          "secops".equals(topic)
+              ? streamAi(body, progress)
+              : ai.post().uri("/v1/advise").body(body).retrieve().body(AiReply.class);
     } catch (RestClientException ex) {
       throw new ResponseStatusException(
           HttpStatus.SERVICE_UNAVAILABLE, "Trợ lý đang chưa kết nối được. Bạn thử lại sau nhé.");
@@ -148,8 +157,78 @@ public class ChatService {
         turns.removeFirst();
       }
     }
-    return new Reply(result.message(), result.intent(), suggestions, sources);
+    return new Reply(
+        result.message(),
+        result.intent(),
+        suggestions,
+        sources,
+        result.engine() == null ? "unknown" : result.engine(),
+        result.answerMode() == null
+            ? ("secops".equals(topic) ? "extractive" : "course")
+            : result.answerMode());
   }
+
+  private AiReply streamAi(AiRequest body, Progress progress) {
+    return ai.post()
+        .uri("/v1/advise/stream")
+        .accept(MediaType.parseMediaType("application/x-ndjson"))
+        .body(body)
+        .exchange(
+            (request, response) -> {
+              if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RestClientException("AI stream request failed");
+              }
+              var contentType = response.getHeaders().getContentType();
+              if (contentType == null
+                  || !contentType.isCompatibleWith(
+                      MediaType.parseMediaType("application/x-ndjson"))) {
+                throw new RestClientException("AI did not return a JSON lines stream");
+              }
+              AiReply result = null;
+              int frames = 0;
+              int characters = 0;
+              try (var reader =
+                  new BufferedReader(
+                      new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                  if (line.isBlank()) continue;
+                  if (line.length() > 50_000 || ++frames > 2048 || result != null) {
+                    throw new RestClientException("Invalid AI stream size or completion");
+                  }
+                  var event = json.readValue(line, AiStreamEvent.class);
+                  switch (event.type() == null ? "" : event.type()) {
+                    case "status" -> {
+                      if (event.message() == null || event.message().length() > 500) {
+                        throw new RestClientException("Invalid status frame");
+                      }
+                      progress.send("status", Map.of("message", event.message()));
+                    }
+                    case "delta" -> {
+                      if (event.text() == null || (characters += event.text().length()) > 12000) {
+                        throw new RestClientException("Invalid answer delta");
+                      }
+                      progress.send("answer_delta", Map.of("text", event.text()));
+                    }
+                    case "result" -> result = event.reply();
+                    default ->
+                        throw new RestClientException(
+                            "AI stream failed or returned an unknown frame");
+                  }
+                }
+              }
+              if (result == null)
+                throw new RestClientException("AI stream ended without a final result");
+              return result;
+            });
+  }
+
+  @FunctionalInterface
+  public interface Progress {
+    void send(String event, Object data) throws IOException;
+  }
+
+  public record AiStreamEvent(String type, String message, String text, AiReply reply) {}
 
   private static boolean validSource(Source source) {
     if (source == null
@@ -200,7 +279,12 @@ public class ChatService {
       String slug, String title, BigDecimal price, String level, String reason) {}
 
   public record AiReply(
-      String message, String intent, List<AiCourse> courses, List<Source> sources) {}
+      String message,
+      String intent,
+      List<AiCourse> courses,
+      List<Source> sources,
+      String engine,
+      String answerMode) {}
 
   public record Source(String title, String url) {}
 
@@ -214,5 +298,10 @@ public class ChatService {
       boolean enrolled) {}
 
   public record Reply(
-      String message, String intent, List<Suggestion> courses, List<Source> sources) {}
+      String message,
+      String intent,
+      List<Suggestion> courses,
+      List<Source> sources,
+      String engine,
+      String answerMode) {}
 }

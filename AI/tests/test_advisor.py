@@ -3,10 +3,10 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
+from advisor.api.schemas import AdviceRequest, Course, Turn
 from advisor.app import app
-from advisor.catalog import parse_price, read_spreadsheet
-from advisor.retrieval import advise
-from advisor.schemas import AdviceRequest, Course, Turn
+from advisor.ingestion.catalog import parse_price, read_spreadsheet
+from advisor.services.courses import advise
 
 
 @pytest.fixture
@@ -108,6 +108,7 @@ def test_csv_import_rejects_duplicates_and_partial_bad_import(tmp_path):
 
 
 def test_service_requires_configured_token_and_valid_request(monkeypatch, catalog):
+  monkeypatch.setenv("AI_LLM_ENABLED", "false")
   monkeypatch.setenv("AI_SERVICE_TOKEN", "test-secret")
   with TestClient(app) as client:
     assert client.get("/health").status_code == 200

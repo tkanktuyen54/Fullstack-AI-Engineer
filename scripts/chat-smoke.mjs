@@ -1,7 +1,9 @@
 // Exercises the real Java -> Python advisor using anonymous session and CSRF cookies.
 import assert from 'node:assert/strict';
+import { readChatEvents } from '../FE/src/app/core/chat-stream.ts';
 
 const base = process.argv[2] || 'http://127.0.0.1:8080';
+const requireLlm = process.argv.includes('--require-llm');
 const cookies = new Map();
 
 function remember(response) {
@@ -30,21 +32,25 @@ async function ask(message, courseSlug = null, isolated = false, topic = 'course
     body: JSON.stringify({ message, courseSlug, topic }),
   });
   remember(response);
-  const text = await response.text();
-  assert.equal(response.status, 200, text);
+  if (response.status !== 200) assert.fail(await response.text());
   const events = new Map();
-  for (const block of text.split(/\r?\n\r?\n/)) {
-    const event = /^event:(.*)$/m.exec(block)?.[1]?.trim();
-    const data = block
-      .split(/\r?\n/)
-      .filter((line) => line.startsWith('data:'))
-      .map((line) => line.slice(5).trimStart())
-      .join('\n');
-    if (event && data) events.set(event, JSON.parse(data));
+  const deltas = [];
+  const started = performance.now();
+  let firstDeltaMs = null;
+  let finalAnswerMs = null;
+  for await (const event of readChatEvents(response.body)) {
+    events.set(event.event, event.data);
+    if (event.event === 'answer_delta') {
+      firstDeltaMs ??= performance.now() - started;
+      deltas.push(event.data.text);
+    }
+    if (event.event === 'answer') finalAnswerMs = performance.now() - started;
+    if (event.event === 'done') break;
   }
   assert(!events.has('error'), JSON.stringify(events.get('error')));
-  assert(events.has('done'), text);
-  assert(events.has('answer'), text);
+  assert(events.has('done'), 'Missing completion event');
+  assert(events.has('answer'), 'Missing authoritative answer');
+  events.set('stream_stats', { deltas, firstDeltaMs, finalAnswerMs });
   return events;
 }
 
@@ -67,13 +73,28 @@ events = await ask('Có hoàn tiền không');
 assert.equal(events.get('courses').length, 0);
 
 events = await ask('Threat Hunting là gì?', null, false, 'secops');
-assert.match(events.get('answer').text, /chủ động truy vấn/);
+assert.match(events.get('answer').text, /truy vấn|SQL|events/i);
 assert.equal(events.get('courses').length, 0);
 assert.match(
   events.get('sources')[0].url,
   /^https:\/\/docs\.cmctelecom\.io\/vi\/secops\/threat-hunting\/overview#/,
 );
 assert.equal(events.get('done').intent, 'documentation');
+assert(['generated', 'extractive'].includes(events.get('done').answerMode));
+if (requireLlm) {
+  assert.equal(events.get('done').answerMode, 'generated');
+  assert.equal(events.get('done').engine, 'secops-bm25+ollama/qwen3:0.6b');
+  const stats = events.get('stream_stats');
+  assert(stats.deltas.length >= 2, 'Expected multiple live answer deltas');
+  assert(
+    stats.firstDeltaMs < stats.finalAnswerMs,
+    'First delta must arrive before the final answer',
+  );
+  assert.equal(stats.deltas.join('').trim(), events.get('answer').text);
+  console.log(
+    `Live stream: ${stats.deltas.length} deltas; first at ${Math.round(stats.firstDeltaMs)} ms, final at ${Math.round(stats.finalAnswerMs)} ms.`,
+  );
+}
 
 events = await ask('Các bảng dữ liệu gồm những gì?', null, false, 'secops');
 assert.match(events.get('answer').text, /events/);

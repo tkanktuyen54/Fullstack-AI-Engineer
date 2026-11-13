@@ -34,6 +34,8 @@ app:
   ai:
     base-url: ${AI_SERVICE_URL:http://127.0.0.1:8000}
     token: ${AI_SERVICE_TOKEN:}
+    read-timeout-seconds: ${AI_READ_TIMEOUT_SECONDS:60}
+    stream-timeout-seconds: ${AI_STREAM_TIMEOUT_SECONDS:75}
 
 springdoc:
   api-docs:
