@@ -6,9 +6,12 @@ import com.bigproject.modules.course.service.CourseService;
 import com.bigproject.modules.enrollment.repository.EnrollmentRepository;
 import jakarta.servlet.http.HttpSession;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -75,23 +78,23 @@ public class ChatService {
   }
 
   public Reply answer(ChatRequest request, State state, Long userId) {
-    List<Course> catalog = courses.list("", "");
+    String topic = request.topic() == null ? "courses" : request.topic();
+    List<Course> catalog = "courses".equals(topic) ? courses.list("", "") : List.of();
     List<Turn> history;
     synchronized (state) {
-      history = List.copyOf(state.history);
+      history = List.copyOf(state.history.getOrDefault(topic, List.of()));
     }
     AiReply result;
     try {
       result =
           ai.post()
               .uri("/v1/advise")
-              .body(new AiRequest(request.message(), request.courseSlug(), history, catalog))
+              .body(new AiRequest(request.message(), request.courseSlug(), topic, history, catalog))
               .retrieve()
               .body(AiReply.class);
     } catch (RestClientException ex) {
       throw new ResponseStatusException(
-          HttpStatus.SERVICE_UNAVAILABLE,
-          "Trợ lý đang chưa kết nối được. Bạn thử lại sau hoặc xem danh mục khóa học nhé.");
+          HttpStatus.SERVICE_UNAVAILABLE, "Trợ lý đang chưa kết nối được. Bạn thử lại sau nhé.");
     }
     if (result == null
         || result.message() == null
@@ -104,7 +107,8 @@ public class ChatService {
     Map<String, Course> live =
         catalog.stream().collect(Collectors.toMap(Course::slug, Function.identity()));
     List<Suggestion> suggestions = new ArrayList<>();
-    for (AiCourse item : result.courses().stream().limit(3).toList()) {
+    for (AiCourse item :
+        result.courses().stream().filter(item -> "courses".equals(topic)).limit(3).toList()) {
       if (item == null || item.slug() == null || !item.slug().matches("[a-z0-9-]{1,150}")) {
         continue;
       }
@@ -132,14 +136,46 @@ public class ChatService {
                 false));
       }
     }
+    List<Source> sources =
+        result.sources() == null
+            ? List.of()
+            : result.sources().stream().filter(ChatService::validSource).limit(3).toList();
     synchronized (state) {
-      state.history.add(new Turn("user", request.message()));
-      state.history.add(new Turn("assistant", result.message()));
-      while (state.history.size() > 12) {
-        state.history.removeFirst();
+      var turns = state.history.computeIfAbsent(topic, key -> new ArrayList<>());
+      turns.add(new Turn("user", request.message()));
+      turns.add(new Turn("assistant", result.message()));
+      while (turns.size() > 12) {
+        turns.removeFirst();
       }
     }
-    return new Reply(result.message(), result.intent(), suggestions);
+    return new Reply(result.message(), result.intent(), suggestions, sources);
+  }
+
+  private static boolean validSource(Source source) {
+    if (source == null
+        || source.title() == null
+        || source.title().isBlank()
+        || source.title().length() > 500
+        || source.url() == null
+        || source.url().length() > 2000) {
+      return false;
+    }
+    try {
+      URI uri = URI.create(source.url());
+      return "https".equals(uri.getScheme())
+          && "docs.cmctelecom.io".equals(uri.getHost())
+          && uri.getUserInfo() == null
+          && uri.getPort() == -1
+          && uri.getQuery() == null
+          && uri.getPath() != null
+          && uri.getPath().startsWith("/vi/secops/")
+          && !uri.getPath().contains("\\")
+          && Arrays.stream(uri.getPath().split("/"))
+              .noneMatch(segment -> ".".equals(segment) || "..".equals(segment))
+          && uri.normalize().getPath().equals(uri.getPath());
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
   }
 
   public void finish(State state) {
@@ -152,18 +188,21 @@ public class ChatService {
     private long windowStart = System.currentTimeMillis();
     private int requests;
     private boolean busy;
-    private final List<Turn> history = new ArrayList<>();
+    private final Map<String, List<Turn>> history = new HashMap<>();
   }
 
   public record Turn(String role, String content) {}
 
   public record AiRequest(
-      String message, String courseSlug, List<Turn> history, List<Course> courses) {}
+      String message, String courseSlug, String topic, List<Turn> history, List<Course> courses) {}
 
   public record AiCourse(
       String slug, String title, BigDecimal price, String level, String reason) {}
 
-  public record AiReply(String message, String intent, List<AiCourse> courses) {}
+  public record AiReply(
+      String message, String intent, List<AiCourse> courses, List<Source> sources) {}
+
+  public record Source(String title, String url) {}
 
   public record Suggestion(
       String slug,
@@ -174,5 +213,6 @@ public class ChatService {
       boolean available,
       boolean enrolled) {}
 
-  public record Reply(String message, String intent, List<Suggestion> courses) {}
+  public record Reply(
+      String message, String intent, List<Suggestion> courses, List<Source> sources) {}
 }

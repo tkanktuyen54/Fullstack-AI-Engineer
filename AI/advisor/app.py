@@ -8,6 +8,7 @@ import torch
 from fastapi import FastAPI, Header, HTTPException
 
 from .catalog import load_catalog
+from .knowledge import DEFAULT_PATH, KnowledgeBase
 from .model import load_model
 from .retrieval import advise
 from .schemas import AdviceReply, AdviceRequest
@@ -18,6 +19,8 @@ async def lifespan(app: FastAPI):
   torch.set_num_threads(int(os.getenv("AI_TORCH_THREADS", "2")))
   path = Path(os.getenv("AI_CATALOG_PATH", "data/catalog.json"))
   app.state.catalog = load_catalog(path) if path.exists() else []
+  knowledge_path = Path(os.getenv("AI_KNOWLEDGE_PATH", str(DEFAULT_PATH)))
+  app.state.knowledge = KnowledgeBase.load(knowledge_path) if knowledge_path.exists() else None
   app.state.model = None
   checkpoint = os.getenv("AI_MODEL_PATH", "")
   if checkpoint:
@@ -27,7 +30,7 @@ async def lifespan(app: FastAPI):
   yield
 
 
-app = FastAPI(title="Khoa course advisor", lifespan=lifespan)
+app = FastAPI(title="Khoa AI assistant", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -36,6 +39,9 @@ def health():
     "status": "ok",
     "modelLoaded": app.state.model is not None,
     "importedCourses": len(app.state.catalog),
+    "knowledgePages": len(app.state.knowledge.pages) if app.state.knowledge else 0,
+    "knowledgeChunks": len(app.state.knowledge.chunks) if app.state.knowledge else 0,
+    "knowledgeUpdatedAt": app.state.knowledge.updated_at if app.state.knowledge else None,
   }
 
 
@@ -46,4 +52,8 @@ def advice(request: AdviceRequest, x_advisor_token: Optional[str] = Header(defau
     raise HTTPException(status_code=401, detail="Invalid service token")
   if not request.message.strip():
     raise HTTPException(status_code=422, detail="Message must not be blank")
+  if request.topic == "secops":
+    if app.state.knowledge is None:
+      raise HTTPException(status_code=503, detail="Kho tài liệu CMC SecOps chưa được nhập.")
+    return app.state.knowledge.answer(request)
   return advise(request, app.state.catalog, app.state.model)

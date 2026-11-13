@@ -1,6 +1,37 @@
-# Trợ lý khóa học — Python + PyTorch
+# Trợ lý AI — khóa học và tài liệu CMC SecOps
 
 Angular mở sidebar bên phải → Spring Boot giữ phiên, CSRF và dữ liệu website → Python tư vấn → SSE trả kết quả và thẻ khóa học.
+
+## Hỏi đáp tài liệu CMC SecOps
+
+Mở **Trợ lý AI** trên website, chọn **CMC SecOps**, rồi nhập câu hỏi như:
+
+- `Threat Hunting là gì?`
+- `Các bảng dữ liệu của Threat Hunting gồm những gì?`
+- `Làm sao chạy truy vấn mới trong Threat Hunting?`
+- `Một truy vấn trả về tối đa bao nhiêu dòng?`
+
+Kho `data/secops.json` có sẵn bản nội dung tiếng Việt của 5 trang chính thức: SIEM overview, Threat Hunting overview, Run a new query, Saved Queries và SQL User Guide. Metadata `fetchedAt` ghi thời điểm nhập thực tế. Chế độ này tìm đoạn tài liệu bằng BM25, hỗ trợ tiếng Việt có/không dấu, và trả **trích đoạn kèm liên kết đến đúng mục của tài liệu**. Câu hỏi tiếp nối sử dụng ngữ cảnh trang vừa hỏi; lịch sử SecOps và khóa học được lưu riêng trong cùng phiên.
+
+Đây là hỏi đáp bằng truy xuất nội dung, chưa phải LLM tổng hợp/suy luận hay tự viết SQL. Không cần API key, không huấn luyện lại TinyGPT và không thực thi truy vấn trên hệ thống CMC. Khi không tìm thấy đoạn đủ phù hợp, trợ lý thông báo chưa có thông tin. So khớp từ khóa vẫn có thể chọn đoạn chưa đúng ý; người dùng nên mở nguồn để đối chiếu. Không tự tải website trong mỗi lần chat.
+
+Cập nhật tài liệu từ thư mục `AI`, sau khi cài dependencies:
+
+```powershell
+.\.venv\Scripts\python.exe -m advisor.knowledge
+```
+
+Trên macOS/Linux, dùng `python -m advisor.knowledge` trong virtualenv. Có thể chỉ định các URL tiếng Việt khác thuộc `/vi/secops/`:
+
+```bash
+python -m advisor.knowledge https://docs.cmctelecom.io/vi/secops/siem-overview https://docs.cmctelecom.io/vi/secops/threat-hunting/overview --output data/secops.json
+```
+
+Lệnh nhập **thay thế toàn bộ kho** bằng danh sách trang được chỉ định; mặc định là 5 trang nêu trên. Nếu một trang tải/phân tích lỗi, kho cũ được giữ nguyên. Công cụ chỉ tải HTTPS đúng tên miền và đường dẫn CMC SecOps, giới hạn kích thước/thời gian tải, bỏ menu, script và nút điều khiển. Nếu website đổi cấu trúc HTML, cần cập nhật bộ phân tích trước khi nhập lại.
+
+Khởi động lại dịch vụ AI sau khi nhập để nạp bản mới. Biến `AI_KNOWLEDGE_PATH` cho phép chọn file kho khác; đường dẫn mặc định được tính từ thư mục mã AI, không phụ thuộc thư mục chạy lệnh. `/health` có `knowledgePages`, `knowledgeChunks`, `knowledgeUpdatedAt`. Docker Compose mount kho từ `AI/data/secops.json`, vì vậy cập nhật file trên máy rồi restart `advisor`.
+
+API nội bộ vẫn là `POST /v1/advise`, thêm `"topic": "secops"`. Phản hồi có `message`, `intent: "documentation"`, `courses: []`, `sources: [{"title": "...", "url": "..."}]`, `engine: "secops-bm25"`. Bỏ `topic` hoặc dùng `"courses"` để tư vấn khóa học. Backend chuyển `sources` thành sự kiện SSE riêng để giao diện hiển thị nguồn có thể nhấp; CSRF và token nội bộ vẫn áp dụng.
 
 ## Chạy local
 
@@ -16,7 +47,7 @@ uvicorn advisor.app:app --host 127.0.0.1 --port 8000
 
 Trên Windows, kích hoạt bằng `.venv\Scripts\activate`. Intel macOS dùng wheel PyTorch 2.2.2 vì các bản mới không còn phát hành wheel cho nền tảng này; Linux/Apple Silicon dùng bản 2.6.0 được pin trong requirements. Máy Intel hiện tại đã được kiểm tra với Python 3.9.6; môi trường mới nên dùng Python 3.11.
 
-Chạy BE bằng JDK 21 như README gốc; mặc định gọi AI tại `http://127.0.0.1:8000`. Có thể đặt `AI_SERVICE_URL` và cùng một `AI_SERVICE_TOKEN` cho hai tiến trình. Sau đó chạy FE bằng Node 24.15+ và `npm start`. Mở icon **Tư vấn khóa học** ở góc phải.
+Chạy BE bằng JDK 21 như README gốc; mặc định gọi AI tại `http://127.0.0.1:8000`. Có thể đặt `AI_SERVICE_URL` và cùng một `AI_SERVICE_TOKEN` cho hai tiến trình. Sau đó chạy FE bằng Node 24.15+ và `npm start`. Mở icon **Trợ lý AI** ở góc phải.
 
 API nội bộ `POST /v1/advise` chỉ dành cho BE. Không publish cổng Python ra Internet. Nếu đặt `AI_SERVICE_TOKEN`, BE gửi header `X-Advisor-Token`. API `/health` cho biết đã nạp checkpoint và bao nhiêu khóa từ file.
 
@@ -78,7 +109,7 @@ Checkpoint `text`/`chat` dùng để nghiên cứu sinh văn bản qua CLI; dị
 
 ## SSE và thao tác khóa học
 
-FE dùng `fetch` POST, gửi cookie và CSRF token, đọc các sự kiện `status`, `answer`, `courses`, `done`, `error`. Đây là stream sự kiện nghiệp vụ, chưa phải stream từng token văn bản của LLM. Proxy Nginx đã tắt buffering.
+FE dùng `fetch` POST, gửi cookie và CSRF token, đọc các sự kiện `status`, `answer`, `courses`, `sources`, `done`, `error`. Đây là stream sự kiện nghiệp vụ, chưa phải stream từng token văn bản của LLM. Proxy Nginx đã tắt buffering.
 
 BE giữ tối đa 12 lượt user/assistant trong phiên, giới hạn 20 câu hỏi/phút/phiên và một yêu cầu đang chạy/phiên. Bộ giới hạn này dành cho phạm vi ứng dụng hiện tại; khi mở public cần bổ sung giới hạn ở gateway để không phụ thuộc riêng vào cookie phiên.
 

@@ -1,0 +1,277 @@
+{
+  "version": 1,
+  "fetchedAt": "2026-11-13T08:25:32.292241+00:00",
+  "pages": [
+    "https://docs.cmctelecom.io/vi/secops/siem-overview",
+    "https://docs.cmctelecom.io/vi/secops/threat-hunting/overview",
+    "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query",
+    "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries",
+    "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide"
+  ],
+  "chunks": [
+    {
+      "title": "SIEM",
+      "heading": "Tổng quan",
+      "url": "https://docs.cmctelecom.io/vi/secops/siem-overview",
+      "text": "SIEM (Security Information and Event Management) là hệ thống quản lý thông tin và sự kiện an toàn thông tin. SIEM tập trung log và sự kiện từ nhiều nguồn, chuẩn hóa dữ liệu, phân tích mối liên hệ giữa các sự kiện và tạo cảnh báo khi phát hiện hoạt động đáng ngờ.\n\nTrong nền tảng SecOps, SIEM cung cấp dữ liệu và các công cụ cốt lõi để đội ngũ SOC giám sát môi trường, điều tra cảnh báo và phát hiện mối đe dọa. Người dùng có thể thực hiện toàn bộ quy trình từ tiếp nhận dữ liệu đến theo dõi kết quả xử lý trên cùng một nền tảng."
+    },
+    {
+      "title": "SIEM",
+      "heading": "Mục tiêu của SIEM",
+      "url": "https://docs.cmctelecom.io/vi/secops/siem-overview#m%E1%BB%A5c-ti%C3%AAu-c%E1%BB%A7a-siem",
+      "text": "SIEM giúp tổ chức:\n\n- Tập trung dữ liệu an toàn thông tin từ ứng dụng, máy chủ, thiết bị mạng, thiết bị đầu cuối, dịch vụ đám mây và các sản phẩm bảo mật.\n\n- Chuẩn hóa dữ liệu từ nhiều định dạng để có thể tìm kiếm, lọc và phân tích nhất quán.\n\n- Phát hiện sớm các hoạt động bất thường, vi phạm chính sách và dấu hiệu tấn công.\n\n- Cung cấp ngữ cảnh cần thiết để chuyên viên phân tích điều tra nhanh và chính xác.\n\n- Lưu trữ dấu vết phục vụ điều tra, báo cáo, kiểm toán và đáp ứng yêu cầu tuân thủ."
+    },
+    {
+      "title": "SIEM",
+      "heading": "SIEM hoạt động như thế nào",
+      "url": "https://docs.cmctelecom.io/vi/secops/siem-overview#siem-ho%E1%BA%A1t-%C4%91%E1%BB%99ng-nh%C6%B0-th%E1%BA%BF-n%C3%A0o",
+      "text": "Quy trình xử lý dữ liệu SIEM thường gồm các bước sau:\n\n- Thu thập dữ liệu: Tiếp nhận log và event từ các nguồn CNTT, mạng, đám mây và an toàn thông tin thông qua các kết nối được hỗ trợ.\n\n- Phân tích và chuẩn hóa: Phân tích cấu trúc log, trích xuất các trường cần thiết và chuyển đổi dữ liệu về mô hình thống nhất.\n\n- Lưu trữ và lập chỉ mục: Lưu raw log và event để phục vụ truy vấn, điều tra và phân tích trong thời gian phù hợp với chính sách của tổ chức.\n\n- Tìm kiếm và tương quan: Cho phép truy vấn dữ liệu theo từ khóa, trường dữ liệu hoặc các điều kiện logic; đồng thời kết hợp nhiều sự kiện để nhận diện mẫu hành vi.\n\n- Phát hiện mối đe dọa: Áp dụng rule và các phương pháp phân tích để xác định sự kiện hoặc chuỗi sự kiện có rủi ro.\n\n- Tạo cảnh báo và điều tra: Sinh Alert khi điều kiện phát hiện được đáp ứng, sau đó cung cấp dữ liệu liên quan để chuyên viên phân tích đánh giá.\n\n- Theo dõi và cải thiện: Ghi nhận kết quả xử lý, đo lường hiệu quả phát hiện và tinh chỉnh rule để giảm cảnh báo sai hoặc tăng phạm vi bao phủ.\n\nChỉnh sửa trang nàyhoặcBáo cáo sự cố\nData Onboarding\n\nHướng dẫn người dùng kết nối nguồn log và đưa dữ liệu bảo mật vào CMC SecOps.\n\nOverview\n\nTổng quan về Data Pipeline, vai trò của Sources, Transformation và Destinations, cùng hai cơ chế xử lý Processors và Passthrough."
+    },
+    {
+      "title": "Threat Hunting · Overview",
+      "heading": "Threat Hunting là gì?",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/overview#threat-hunting-l%C3%A0-g%C3%AC",
+      "text": "Threat Hunting là tính năng cho phép người dùng chủ động truy vấn, khám phá dữ liệu trên các bảng events và entities bằng ngôn ngữ truy vấn dạng SQL, phục vụ cho việc săn tìm (hunting) và điều tra các dấu hiệu bất thường, mối đe dọa tiềm ẩn mà các rule phát hiện tự động có thể chưa phủ tới."
+    },
+    {
+      "title": "Threat Hunting · Overview",
+      "heading": "Các bảng dữ liệu",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/overview#c%C3%A1c-b%E1%BA%A3ng-d%E1%BB%AF-li%E1%BB%87u",
+      "text": "- events: các sự kiện bảo mật được thu thập từ các nguồn log. Đây là bảng dữ liệu chính.\n\n- entities: các đối tượng được quản lý như user, device cùng các thuộc tính đi kèm.\n\nTruy cập tính năng\n\n- Từ thanh menu trái, chọn Investigate → Threat Hunting.\n\n- Màn hình Threat Hunting gồm 2 tab chính:\n\n- Saved Queries: quản lý danh sách các truy vấn đã lưu (Custom và Built in).\n\n- Queries: soạn thảo và chạy một truy vấn mới."
+    },
+    {
+      "title": "Threat Hunting · Run a new query",
+      "heading": "Truy cập màn hình New Query",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query#truy-c%E1%BA%ADp-m%C3%A0n-h%C3%ACnh-new-query",
+      "text": "- Từ thanh menu trái, chọn Investigate → Threat Hunting.\n\n- Chọn tab Queries để mở khu vực soạn thảo truy vấn mới."
+    },
+    {
+      "title": "Threat Hunting · Run a new query",
+      "heading": "Các thành phần trên màn hình",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query#c%C3%A1c-th%C3%A0nh-ph%E1%BA%A7n-tr%C3%AAn-m%C3%A0n-h%C3%ACnh",
+      "text": "- Event Data Sources: chọn nguồn dữ liệu sự kiện sẽ truy vấn (mặc định All Sources).\n\n- Max Result Shown: giới hạn số dòng kết quả hiển thị tối đa (mặc định 1.000 rows).\n\n- Khoảng thời gian: chọn mốc thời gian bắt đầu – kết thúc để giới hạn phạm vi dữ liệu truy vấn. Mặc định là Last 15 mins\n\n- Schema (panel trái): liệt kê danh sách các bảng (table) và cột (field) có trong database, hỗ trợ ô tìm kiếm field để tra cứu tên field khi viết query. Hiện tại có 3 bảng người dùng có thể truy vấn: events và entities\n\n- Khung soạn thảo truy vấn: nơi nhập câu truy vấn SQL, hỗ trợ nhiều tab truy vấn (nhấn + để mở tab mới), nút Clear để xóa nội dung đang soạn.\n\n- Save / Run Query: lưu truy vấn lại hoặc chạy truy vấn ngay.\n\n- Result: khu vực hiển thị kết quả trả về sau khi chạy truy vấn, có thể Choose Columns để tùy chỉnh cột hiển thị, mở rộng toàn màn hình hoặc tải kết quả xuống.\n\n- History (panel phải): lưu lại lịch sử các truy vấn đã chạy để xem lại hoặc chạy lại nhanh."
+    },
+    {
+      "title": "Threat Hunting · Run a new query",
+      "heading": "Các bước thực hiện",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query#c%C3%A1c-b%C6%B0%E1%BB%9Bc-th%E1%BB%B1c-hi%E1%BB%87n",
+      "text": "Bước 1: Chọn Event Data Sources cần truy vấn, hoặc để All Sources để tìm trên toàn bộ nguồn dữ liệu.\n\nBước 2: Chọn Max Result Shown phù hợp với nhu cầu phân tích.\n\nBước 3: Chọn khoảng thời gian cần truy vấn ở ô lịch bên phải.\n\nBước 4: Nhập câu truy vấn SQL vào khung soạn thảo.\nTham khảo chi tiết cú pháp, toán tử được hỗ trợ tại SQL User Guide. Có thể tra cứu nhanh tên field cần dùng ở panel Schema bên trái.\nBước 5: Nhấn Run Query để thực thi truy vấn. Kết quả trả về sẽ hiển thị ở khu vực Result phía dưới.\n\nBước 6: (Tùy chọn) Nhấn Choose Columns để chọn các cột muốn hiển thị trong bảng kết quả.\n\nBước 7: (Tùy chọn) Nhấn Save để lưu lại truy vấn, phục vụ tái sử dụng về sau tại tab Saved Queries.\nMỗi truy vấn đã chạy sẽ được ghi lại trong panel History, giúp xem lại hoặc chạy lại nhanh mà không cần soạn lại từ đầu."
+    },
+    {
+      "title": "Threat Hunting · Run a new query",
+      "heading": "Lưu truy vấn (Save Query)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query#l%C6%B0u-truy-v%E1%BA%A5n-save-query",
+      "text": "Sau khi soạn xong câu truy vấn, nhấn Save để mở popup Save Query và lưu lại truy vấn cho lần sử dụng sau.\n\nPopup gồm các thông tin:\n\n- Query Name (bắt buộc): tên của truy vấn.\n\n- Description: mô tả thêm về mục đích, nội dung của truy vấn.\n\n- Visibility: chế độ hiển thị của truy vấn sau khi lưu, gồm 2 lựa chọn:\n\n- Personal: chỉ người tạo mới xem được truy vấn sau khi lưu.\n\n- Project: truy vấn được chia sẻ với tất cả người dùng trong Project.\n\nCác bước thực hiện:\n\n- Nhấn Save trên thanh công cụ của màn hình New Query.\n\n- Nhập Query Name cho truy vấn.\n\n- (Tùy chọn) Nhập Description để mô tả thêm về truy vấn.\n\n- Chọn Visibility phù hợp: Personal hoặc Project.\n\n- Nhấn Save trong popup để hoàn tất, hoặc Cancel để hủy và đóng popup.\n\nTruy vấn sau khi lưu sẽ xuất hiện trong danh sách Custom tại tab Saved Queries. Xem thêm tại Quản lý Saved Queries.Chỉnh sửa trang nàyhoặcBáo cáo sự cố\nOverview\n\nGiới thiệu tính năng Threat Hunting, cho phép chủ động truy vấn dữ liệu trên các bảng events và entities bằng cú pháp SQL để điều tra và săn tìm mối đe dọa.\n\nSaved Queries\n\nHướng dẫn xem, lọc, tìm kiếm và quản lý danh sách các truy vấn đã lưu trong Threat Hunting."
+    },
+    {
+      "title": "Threat Hunting · Saved Queries",
+      "heading": "Truy cập màn hình Saved Queries",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#truy-c%E1%BA%ADp-m%C3%A0n-h%C3%ACnh-saved-queries",
+      "text": "- Từ thanh menu trái, chọn Investigate → Threat Hunting.\n\n- Chọn tab Saved Queries để xem danh sách các truy vấn đã lưu."
+    },
+    {
+      "title": "Threat Hunting · Saved Queries",
+      "heading": "Phân loại truy vấn",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#ph%C3%A2n-lo%E1%BA%A1i-truy-v%E1%BA%A5n",
+      "text": "- Custom: các truy vấn do người dùng tự tạo và lưu lại (xem Tạo và chạy truy vấn mới).\n\n- Built in: các truy vấn mẫu có sẵn do hệ thống cung cấp.\n\nSố lượng truy vấn ở mỗi loại được hiển thị ngay trên tên tab, ví dụ Custom (1), Built in (0)."
+    },
+    {
+      "title": "Threat Hunting · Saved Queries",
+      "heading": "Lọc và tìm kiếm",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#l%E1%BB%8Dc-v%C3%A0-t%C3%ACm-ki%E1%BA%BFm",
+      "text": "- Data Source: lọc danh sách truy vấn theo nguồn dữ liệu đã sử dụng.\n\n- Ô Search: tìm kiếm truy vấn theo tên.\n\n- Nhấn Clear để xóa toàn bộ điều kiện lọc/tìm kiếm đang áp dụng."
+    },
+    {
+      "title": "Threat Hunting · Saved Queries",
+      "heading": "Thông tin hiển thị trong bảng",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#th%C3%B4ng-tin-hi%E1%BB%83n-th%E1%BB%8B-trong-b%E1%BA%A3ng",
+      "text": "| Cột | Mô tả\n\n| Query Name | Tên của truy vấn đã lưu.\n\n| Data Source | (Các) nguồn dữ liệu mà truy vấn áp dụng.\n\n| Created By | Người tạo truy vấn.\n\n| Created At | Thời điểm truy vấn được tạo.\n\n| Modified At | Thời điểm truy vấn được chỉnh sửa gần nhất.\n\n| Last Run | Thời điểm truy vấn được chạy gần nhất.\n\n| Action | Các thao tác quản lý truy vấn (nhấn biểu tượng ⋮ để mở).\nNhấn Choose Column ở góc phải bảng để tùy chỉnh các cột muốn hiển thị trong danh sách Saved Queries."
+    },
+    {
+      "title": "Threat Hunting · Saved Queries",
+      "heading": "Các thao tác (Action)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#c%C3%A1c-thao-t%C3%A1c-action",
+      "text": "Nhấn biểu tượng ⋮ ở cột Action của một truy vấn để mở menu thao tác, gồm:\n\n- Edit: chuyển sang tab New Query, câu truy vấn đã được điền sẵn vào khung soạn thảo. Người dùng chỉ cần nhấn Run Query để chạy lại, hoặc chỉnh sửa trước khi chạy/lưu.\n\n- Duplicate: tạo một bản sao của truy vấn hiện tại.\n\n- Delete: xóa truy vấn đã lưu khỏi danh sách.\n\nThao tác Delete không thể hoàn tác. Truy vấn sau khi xóa sẽ không thể khôi phục lại."
+    },
+    {
+      "title": "Threat Hunting · Saved Queries",
+      "heading": "Phân trang",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#ph%C3%A2n-trang",
+      "text": "- Sử dụng Items per page ở cuối bảng để thay đổi số lượng truy vấn hiển thị trên mỗi trang.\n\n- Dùng các nút điều hướng trang bên cạnh để chuyển qua lại giữa các trang kết quả.\n\nChỉnh sửa trang nàyhoặcBáo cáo sự cố\nRun a new query\n\nHướng dẫn tạo, cấu hình và chạy một truy vấn SQL-like trong Threat Hunting, xem kết quả và lưu lại truy vấn.\n\nSQL User Guide\n\nDanh sách các hàm SQL được hỗ trợ trong Threat Hunting, kèm ví dụ và các giới hạn cần lưu ý."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "Tổng quan",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide",
+      "text": "Threat Hunting dùng Trino SQL để tìm kiếm, tổng hợp và liên kết dữ liệu log bảo mật của tổ chức. Tài liệu liệt kê các hàm SQL có thể sử dụng, kèm ví dụ và giới hạn truy vấn."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "1. Trước khi bắt đầu",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_1-tr%C6%B0%E1%BB%9Bc-khi-b%E1%BA%AFt-%C4%91%E1%BA%A7u",
+      "text": "| Quy tắc | Chi tiết\n\n| Chỉ truy vấn đọc (read-only) | Câu truy vấn phải bắt đầu bằng SELECT hoặc WITH. Không hỗ trợ thêm, sửa hay xóa dữ liệu.\n\n| Mỗi lần một câu lệnh | Không gửi nhiều câu lệnh cách nhau bởi dấu ;.\n\n| Độ dài tối đa | 8.000 ký tự.\n\n| Dùng đúng tên bảng | Viết chính xác events, entities, ti (threat intelligence). Không thêm tiền tố, không đặt alias rút gọn cho bảng (ví dụ FROM events e sẽ báo lỗi).\n\n| Tên cột | Đặt field ECS có dấu chấm trong nháy kép, như \"source.ip\". Cột thực cũng chấp nhận tên không có nháy kép. Viết JSON path như customs.score mà không đặt cả path trong nháy kép.\n\n| Khoảng thời gian được thiết lập bên ngoài câu truy vấn | Khoảng thời gian được chọn trên giao diện và áp dụng tự động — không cần tự viết điều kiện lọc theo thời gian trong câu truy vấn."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "2. Bảng có thể truy vấn",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_2-b%E1%BA%A3ng-c%C3%B3-th%E1%BB%83-truy-v%E1%BA%A5n",
+      "text": "| Bảng | Nội dung\n\n| events | Các sự kiện bảo mật được thu thập từ nguồn log. Đây là bảng dữ liệu chính.\n\n| entities | Các đối tượng được quản lý như user, device cùng các thuộc tính đi kèm. Ngoài ra, còn có các chỉ báo threat intelligence: IP độc hại, domain, file hash, v.v.\n\n| ti | Các IOC từ threat intelligence: IP, domain, URL, file hash. Hiển thị là Ti trong panel Schema.\n\nevents được lọc theo nguồn log và time range đã chọn; không chọn nguồn thì truy vấn tất cả nguồn trong tổ chức. entities và ti được lọc theo tổ chức, không áp dụng time range. Các thuộc tính mở rộng có kiểu text; dùng cast hoặc try_cast khi so sánh số."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.1 Văn bản (Text)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_31-v%C4%83n-b%E1%BA%A3n-text",
+      "text": "| Hàm | Chức năng | Ví dụ\n\n| upper(x) | Chuyển văn bản thành CHỮ HOA | upper(host.name)\n\n| lower(x) | Chuyển văn bản thành chữ thường | lower(user.name)\n\n| substr(x, start, length) | Trích một phần văn bản (vị trí bắt đầu từ 1) | substr(host.name, 1, 3)\n\n| concat(a, b, ...) | Ghép nối các giá trị văn bản | concat(user.name, '@', host.name)\n\n| trim(x) | Xóa khoảng trắng ở đầu và cuối | trim(user.name)\n\n| length(x) | Số ký tự | length(url.full)\n\n| split(x, separator) | Tách văn bản thành danh sách | split(url.domain, '.')\n\n| regexp_like(x, pattern) | Kiểm tra văn bản có khớp biểu thức chính quy không | regexp_like(process.name, '(?i)powershell')\n\n| regexp_extract(x, pattern) | Trả về phần khớp với biểu thức chính quy | regexp_extract(url.full, 'id=([0-9]+)')\n\n| strpos(x, substring) | Vị trí xuất hiện của một chuỗi con (0 nếu không tìm thấy) | strpos(message, 'failed')"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.2 Ngày giờ (Datetime)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_32-ng%C3%A0y-gi%E1%BB%9D-datetime",
+      "text": "| Hàm | Chức năng | Ví dụ\n\n| date_trunc(unit, time) | Làm tròn xuống mốc đầu giờ, đầu ngày hoặc đầu tháng — hữu ích khi GROUP BY | date_trunc('hour', timestamp)\n\n| date_add(unit, amount, time) | Cộng hoặc trừ thời gian | date_add('day', -1, timestamp)\n\n| date_diff(unit, from, to) | Khoảng cách giữa hai mốc thời gian | date_diff('minute', event.start, event.end)\n\n| now() | Ngày giờ hiện tại | now()\n\n| from_unixtime(number) | Chuyển timestamp dạng số thành ngày giờ | from_unixtime(event.epoch)\n\n| to_unixtime(time) | Chuyển ngày giờ thành số | to_unixtime(timestamp)\n\n| date_format(time, format) | Hiển thị ngày giờ theo định dạng tùy chọn | date_format(timestamp, '%Y-%m-%d %H:%i')\n\nCác đơn vị (unit) khả dụng: 'second', 'minute', 'hour', 'day', 'week', 'month', 'year'."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.3 Đọc dữ liệu JSON",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_33-%C4%91%E1%BB%8Dc-d%E1%BB%AF-li%E1%BB%87u-json",
+      "text": "Một số field giữ nguyên nội dung gốc dạng JSON — ví dụ event.original.\n\n| Hàm | Chức năng | Ví dụ\n\n| json_extract_scalar(x, path) | Trả về một giá trị đơn bên trong JSON | json_extract_scalar(event.original, '$.process.command_line')\n\n| json_extract(x, path) | Trả về một khối JSON lồng nhau | json_extract(event.original, '$.process')\n\n| json_parse(x) | Chuyển văn bản thành dữ liệu JSON | json_parse(message)"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.4 Đếm và tổng hợp",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_34-%C4%91%E1%BA%BFm-v%C3%A0-t%E1%BB%95ng-h%E1%BB%A3p",
+      "text": "| Hàm | Chức năng | Ví dụ\n\n| count(*) | Đếm số dòng | count(*)\n\n| count(DISTINCT x) | Đếm số giá trị khác nhau | count(DISTINCT source.ip)\n\n| approx_distinct(x) | Đếm số giá trị khác nhau một cách xấp xỉ — nhanh hơn nhiều với tập dữ liệu lớn | approx_distinct(user.name)\n\n| sum(x) | Tổng | sum(network.bytes)\n\n| avg(x) | Trung bình | avg(event.duration)\n\n| min(x) / max(x) | Giá trị nhỏ nhất / lớn nhất | max(timestamp)\n\n| array_agg(x) | Gom các giá trị trong một nhóm thành danh sách | array_agg(source.ip)"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.5 Xử lý giá trị rỗng và kiểu dữ liệu",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_35-x%E1%BB%AD-l%C3%BD-gi%C3%A1-tr%E1%BB%8B-r%E1%BB%97ng-v%C3%A0-ki%E1%BB%83u-d%E1%BB%AF-li%E1%BB%87u",
+      "text": "Dữ liệu log thường thiếu field hoặc có định dạng không như mong đợi. Các hàm dưới đây giúp câu truy vấn không bị lỗi khi gặp các trường hợp này.\n\n| Hàm | Chức năng | Ví dụ\n\n| coalesce(a, b, ...) | Trả về giá trị đầu tiên khác rỗng | coalesce(user.name, source.user, 'unknown')\n\n| nullif(a, b) | Trả về rỗng nếu hai giá trị bằng nhau | nullif(host.name, '')\n\n| cast(x as type) | Chuyển đổi sang kiểu dữ liệu khác | cast(event.severity as bigint)\n\n| try_cast(x as type) | Chuyển đổi kiểu dữ liệu, trả về rỗng thay vì báo lỗi nếu không chuyển được | try_cast(event.severity as bigint)\n\n| try(expression) | Bỏ qua lỗi trong một biểu thức và trả về rỗng | try(regexp_extract(url.full, 'id=([0-9]+)'))"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.6 Danh sách (List)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_36-danh-s%C3%A1ch-list",
+      "text": "| Hàm | Chức năng | Ví dụ\n\n| cardinality(x) | Số phần tử trong danh sách | cardinality(split(url.path, '/'))\n\n| contains(list, value) | Kiểm tra danh sách có chứa một giá trị không | contains(split(tags, ','), 'malware')\n\n| element_at(list, position) | Trả về phần tử tại một vị trí (bắt đầu từ 1) | element_at(split(url.domain, '.'), 1)"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "3.7 Các cú pháp SQL tiêu chuẩn khác được hỗ trợ",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_37-c%C3%A1c-c%C3%BA-ph%C3%A1p-sql-ti%C3%AAu-chu%E1%BA%A9n-kh%C3%A1c-%C4%91%C6%B0%E1%BB%A3c-h%E1%BB%97-tr%E1%BB%A3",
+      "text": "Ngoài các hàm nêu trên, các cú pháp SQL quen thuộc vẫn hoạt động bình thường:\n\n- So sánh và toán tử số học: =, !=, <, >, +, -, *, /\n\n- LIKE, IN (...), BETWEEN, IS NULL, AND / OR / NOT\n\n- || để nối các giá trị văn bản\n\n- CASE WHEN ... THEN ... ELSE ... END\n\n- GROUP BY, HAVING, ORDER BY, LIMIT\n\n- JOIN giữa các bảng events, entities và ti\n\n- WITH (subquery có tên) và UNION / UNION ALL"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "4. Các hàm chưa được hỗ trợ",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_4-c%C3%A1c-h%C3%A0m-ch%C6%B0a-%C4%91%C6%B0%E1%BB%A3c-h%E1%BB%97-tr%E1%BB%A3",
+      "text": "Nếu sử dụng một hàm không có trong danh sách ở trên, hệ thống sẽ báo lỗi\nSQL_GUARD_REJECTED. Một số hàm được hỏi nhiều nhất nhưng hiện chưa khả dụng:\n\n- Đánh số thứ tự trong nhóm: row_number, rank, lag, lead, first_value\n\n- Thống kê nâng cao: approx_percentile, count_if, histogram, map_agg\n\n- Các hàm đọc thông tin hệ thống\n\nCần một hàm cụ thể cho use case của bạn? Gửi yêu cầu kèm ví dụ cho đội support — danh sách hàm được mở rộng theo từng chu kỳ review."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "5. Truy vấn log source đã được transformation",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_5-truy-v%E1%BA%A5n-log-source-%C4%91%C3%A3-%C4%91%C6%B0%E1%BB%A3c-transformation",
+      "text": "Đếm số event theo category\n\nSELECT event.category, count(*) AS total\nFROM events\nGROUP BY event.category\nORDER BY total DESC\n\nPhân tích hoạt động theo từng giờ\n\nSELECT date_trunc('hour', timestamp) AS hour,\n       count(*) AS events,\n       approx_distinct(user.name) AS users\nFROM events\nGROUP BY 1\nORDER BY 1\n\nTìm PowerShell process activity\n\nKết quả liệt kê PowerShell process, không tự chứng minh hoạt động độc hại.\n\nSELECT \"timestamp\", \"host.name\", \"process.name\", \"process.executable\"\nFROM events\nWHERE lower(\"process.name\") = 'powershell.exe'\nORDER BY \"timestamp\" DESC\n\nTìm source IP có nhiều lần đăng nhập thất bại\n\nSELECT \"source.ip\", count(*) AS attempts,\n       approx_distinct(\"user.name\") AS targeted_users\nFROM events\nWHERE \"event.category\" = 'authentication'\n  AND \"event.outcome\" = 'failure'\n  AND nullif(\"source.ip\", '') IS NOT NULL\nGROUP BY \"source.ip\"\nHAVING count(*) >= 5\nORDER BY attempts DESC\n\nTra cứu đối tượng được quản lý theo một thuộc tính mở rộng\n\nSELECT entities.display_name, entities.department\nFROM entities\nWHERE entities.department IS NOT NULL"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6. Truy vấn raw log",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_6-truy-v%E1%BA%A5n-raw-log",
+      "text": "Chọn Data Source raw hoặc passthrough lưu log trong event.original. log.source là ID của nguồn trên platform; log_source là thuộc tính tùy chọn trong raw JSON.\n\nĐiều chỉnh JSON path theo payload. Ví dụ Windows/auditd đọc string message trong JSON bên ngoài; Entra ID đọc trực tiếp JSON object. Với log không phải JSON, dùng tìm keyword. try() trả NULL khi giải mã lỗi."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.1 Time range",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_61-time-range",
+      "text": "| Dạng query | Time range tối đa trong request\n\n| Plain latest-row query đọc raw text, không có điều kiện tìm văn bản | 30 ngày\n\n| Plain latest-row query có điều kiện raw text LIKE, strpos dương hoặc regex ở cấp ngoài cùng | Tối đa 365 ngày\n\n| Aggregate có LIKE hoặc strpos dương dùng được index, nối bằng AND ở cấp ngoài cùng | 7 ngày\n\n| Aggregate chỉ dùng raw regex hoặc biểu thức raw không dùng được index | 1 ngày\n\nPlain latest-row query không có aggregate, DISTINCT, JOIN, CTE, subquery hay OFFSET; chỉ sắp xếp theo timestamp hoặc không sắp xếp. Chọn range và row limit trên giao diện; dữ liệu khả dụng phụ thuộc retention.\n\nĐể tận dụng index pruning, dùng LIKE hoặc strpos dương ở cấp ngoài cùng, nối bằng AND, với ít nhất ba ký tự ASCII (nên từ sáu ký tự). Regex đơn lẻ và điều kiện trong OR/NOT không dùng được text index."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.2 Xem cấu trúc log gốc",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_62-xem-c%E1%BA%A5u-tr%C3%BAc-log-g%E1%BB%91c",
+      "text": "Chạy câu này trước để xem cấu trúc payload.\n\nSELECT \"timestamp\", \"log.source\", \"event.original\"\nFROM events\nORDER BY \"timestamp\" DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.3 Tìm keyword không phân biệt hoa thường",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_63-t%C3%ACm-keyword-kh%C3%B4ng-ph%C3%A2n-bi%E1%BB%87t-hoa-th%C6%B0%E1%BB%9Dng",
+      "text": "Thay powershell bằng keyword viết thường; strpos tìm chuỗi nguyên văn.\n\nSELECT \"timestamp\", \"log.source\", \"event.original\"\nFROM events\nWHERE strpos(lower(\"event.original\"), 'powershell') > 0\nORDER BY \"timestamp\" DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.4 Windows logon thất bại",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_64-windows-logon-th%E1%BA%A5t-b%E1%BA%A1i",
+      "text": "Giải mã JSON lồng trong message và kiểm tra Event ID 4625.\n\nSELECT \"timestamp\", json_extract_scalar(\"event.original\", '$.host') AS host,\n       json_extract_scalar(json_extract_scalar(\"event.original\", '$.message'), '$.Event.EventData.TargetUserName') AS target_user,\n       json_extract_scalar(json_extract_scalar(\"event.original\", '$.message'), '$.Event.EventData.IpAddress') AS source_ip\nFROM events\nWHERE \"event.original\" LIKE '%windows_security%'\n  AND \"event.original\" LIKE '%4625%'\n  AND try(json_extract_scalar(\"event.original\", '$.log_source')) = 'windows_security'\n  AND try(json_extract_scalar(json_extract_scalar(\"event.original\", '$.message'), '$.Event.System.EventID')) = '4625'\nORDER BY \"timestamp\" DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.5 Auditd process execution",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_65-auditd-process-execution",
+      "text": "Trích a0 từ message; capturing group 1 chỉ trả executable.\n\nSELECT \"timestamp\", json_extract_scalar(\"event.original\", '$.host') AS host,\n       regexp_extract(json_extract_scalar(\"event.original\", '$.message'), 'a0=\"([^\"]+)\"', 1) AS executable,\n       json_extract_scalar(\"event.original\", '$.message') AS audit_line\nFROM events\nWHERE \"event.original\" LIKE '%linux_auditd%'\n  AND try(json_extract_scalar(\"event.original\", '$.log_source')) = 'linux_auditd'\n  AND regexp_like(try(json_extract_scalar(\"event.original\", '$.message')), 'type=EXECVE')\nORDER BY \"timestamp\" DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.6 Microsoft Entra ID sign-in thất bại",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_66-microsoft-entra-id-sign-in-th%E1%BA%A5t-b%E1%BA%A1i",
+      "text": "Lọc error code khác 0; try_cast xử lý định dạng số không hợp lệ.\n\nSELECT \"timestamp\", json_extract_scalar(\"event.original\", '$.userPrincipalName') AS user_email,\n       json_extract_scalar(\"event.original\", '$.ipAddress') AS source_ip,\n       json_extract_scalar(\"event.original\", '$.status.errorCode') AS error_code,\n       json_extract_scalar(\"event.original\", '$.status.failureReason') AS failure_reason\nFROM events\nWHERE \"event.original\" LIKE '%entra_signin%'\n  AND try(json_extract_scalar(\"event.original\", '$.log_source')) = 'entra_signin'\n  AND try_cast(try(json_extract_scalar(\"event.original\", '$.status.errorCode')) AS bigint) > 0\nORDER BY \"timestamp\" DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "6.7 Keyword match theo loại log",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_67-keyword-match-theo-lo%E1%BA%A1i-log",
+      "text": "Gom nhóm theo log_source trong payload; giá trị thiếu hoặc không hợp lệ nằm trong nhóm unknown. Range tối đa: 7 ngày.\n\nSELECT coalesce(try(json_extract_scalar(\"event.original\", '$.log_source')), 'unknown') AS raw_source,\n       count(*) AS hits\nFROM events\nWHERE strpos(lower(\"event.original\"), 'powershell') > 0\nGROUP BY 1\nORDER BY hits DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "7. Truy vấn threat intelligence (bảng ti)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_7-truy-v%E1%BA%A5n-threat-intelligence-b%E1%BA%A3ng-ti",
+      "text": "Bảng ti chứa các IOC (Indicator of Compromise) do connector threat intelligence thu thập. Bạn có thể truy vấn riêng bảng này, hoặc JOIN với events để tìm log khớp với IOC."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "7.1 Các cột của bảng ti",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_71-c%C3%A1c-c%E1%BB%99t-c%E1%BB%A7a-b%E1%BA%A3ng-ti",
+      "text": "| Column | Meaning\n\n| observable_value | Giá trị IOC: IP, domain, URL hoặc file hash. Dùng cột này để JOIN với events.\n\n| indicator_type | Loại IOC: IPv4-Addr, IPv6-Addr, Domain-Name, Url, StixFile (file hash) hoặc Unknown.\n\n| threat_type | Nhóm mối đe dọa, ví dụ malicious-activity, phishing, malware, botnet, scanning, c2. Có thể để trống.\n\n| score, confidence | Điểm rủi ro và độ tin cậy do feed cung cấp.\n\n| valid_from, valid_until | Thời hạn hiệu lực. Lưu dạng text theo chuẩn ISO-8601, không phải kiểu timestamp.\n\n| revoked | true nếu nhà cung cấp đã thu hồi IOC.\n\n| description, pattern, malware_family | Thông tin bổ sung từ feed.\n\n| created_at, updated_at | Thời điểm IOC được nạp hoặc cập nhật trên platform, không phải thời điểm IOC xuất hiện trong log."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "7.2 Lưu ý khi dùng ti",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_72-l%C6%B0u-%C3%BD-khi-d%C3%B9ng-ti",
+      "text": "- ti không áp dụng time range. Khi JOIN, chỉ phía events bị giới hạn bởi time range và nguồn log đã chọn.\n\n- Một IOC có thể xuất hiện nhiều dòng vì mỗi feed ghi một dòng riêng. Trước khi JOIN, hãy gom về một dòng cho mỗi IOC trong khối WITH (CTE) bằng GROUP BY observable_value, và đặt alias cho các cột tổng hợp.\n\n- Chỉ JOIN bằng điều kiện =. Tránh dùng OR trong điều kiện JOIN (ví dụ source.ip = ... OR destination.ip = ...): truy vấn có thể chạy rất lâu và chiếm mất lượt chạy của bạn, khiến các truy vấn khác không chạy được. Hãy tách thành mỗi hướng một truy vấn.\n\n- valid_until là text, nên so sánh 19 ký tự đầu của nó với date_format(now(), ...) như ví dụ ở mục 7.3. Một IOC có thể đã hết hạn nhưng chưa bị revoked, vì vậy hãy quyết định có coi IOC hết hạn là khớp hay không.\n\n- Không dùng các cột kiểu array như labels trong truy vấn. Hãy lọc theo description, observable_value hoặc pattern.\n\n- Kết quả khớp chỉ cho biết một giá trị trong log trùng với IOC, chưa đủ để kết luận có sự cố. Hãy kiểm tra feed, score, valid_until, đồng thời loại trừ trường hợp IP nội bộ hoặc IOC thử nghiệm."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "7.3 Tra cứu và thống kê IOC",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_73-tra-c%E1%BB%A9u-v%C3%A0-th%E1%BB%91ng-k%C3%AA-ioc",
+      "text": "Thống kê IOC chưa bị thu hồi theo loại\n\nSELECT indicator_type, threat_type, count(*) AS total\nFROM ti\nWHERE revoked = false\nGROUP BY indicator_type, threat_type\nORDER BY total DESC\n\nThống kê IOC của một nhà cung cấp (thay từ khóa bằng tên nhà cung cấp cần tìm)\n\nSELECT indicator_type, threat_type, count(*) AS total, max(score) AS max_score\nFROM ti\nWHERE lower(description) LIKE '%brandefense%'\nGROUP BY indicator_type, threat_type\nORDER BY total DESC\n\nTra cứu một IOC trên tất cả feed\n\nSELECT observable_value, indicator_type, threat_type, score, confidence, valid_until, revoked,\n       substr(description, 1, 200) AS description\nFROM ti\nWHERE observable_value = '203.0.113.10'\n   OR pattern LIKE '%203.0.113.10%'\nORDER BY created_at DESC\n\nLọc IOC còn hiệu lực (chưa hết hạn, chưa bị thu hồi)\n\nSELECT observable_value, indicator_type, threat_type, score, confidence, valid_until\nFROM ti\nWHERE revoked = false\n  AND substr(valid_until, 1, 19) >= date_format(now(), '%Y-%m-%dT%H:%i:%s')\nORDER BY score DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "7.4 Đối chiếu IOC với log (JOIN)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_74-%C4%91%E1%BB%91i-chi%E1%BA%BFu-ioc-v%E1%BB%9Bi-log-join",
+      "text": "Tìm source IP trong log khớp với IOC\n\nWITH ioc AS (\n  SELECT observable_value, max(score) AS score, min(threat_type) AS threat_type\n  FROM ti\n  WHERE indicator_type IN ('IPv4-Addr', 'IPv6-Addr') AND revoked = false\n  GROUP BY observable_value\n)\nSELECT events.\"source.ip\" AS ioc_ip, ioc.threat_type, ioc.score, events.\"event.action\" AS action,\n       count(*) AS hits, min(events.\"timestamp\") AS first_seen, max(events.\"timestamp\") AS last_seen\nFROM events\nJOIN ioc ON events.\"source.ip\" = ioc.observable_value\nGROUP BY events.\"source.ip\", ioc.threat_type, ioc.score, events.\"event.action\"\nORDER BY hits DESC\n\nTìm client nội bộ đã kết nối tới IP là IOC\n\nWITH ioc AS (\n  SELECT observable_value, max(score) AS score, min(threat_type) AS threat_type\n  FROM ti\n  WHERE indicator_type IN ('IPv4-Addr', 'IPv6-Addr') AND revoked = false\n  GROUP BY observable_value\n)\nSELECT events.\"destination.ip\" AS ioc_ip, ioc.threat_type, ioc.score,\n       count(DISTINCT events.\"source.ip\") AS internal_clients,\n       array_agg(DISTINCT events.\"event.action\") AS actions,\n       count(*) AS hits\nFROM events\nJOIN ioc ON events.\"destination.ip\" = ioc.observable_value\nGROUP BY events.\"destination.ip\", ioc.threat_type, ioc.score\nORDER BY hits DESC\n\nTìm truy vấn DNS tới domain là IOC\n\nWITH ioc AS (\n  SELECT lower(observable_value) AS domain, max(score) AS score, min(threat_type) AS threat_type\n  FROM ti\n  WHERE indicator_type = 'Domain-Name' AND revoked = false\n  GROUP BY lower(observable_value)\n)\nSELECT events.\"dns.question.name\" AS domain, ioc.threat_type, ioc.score,\n       count(*) AS hits, approx_distinct(events.\"source.ip\") AS clients\nFROM events\nJOIN ioc ON lower(events.\"dns.question.name\") = ioc.domain\nGROUP BY events.\"dns.question.name\", ioc.threat_type, ioc.score\nORDER BY hits DESC\n\nTìm file hash là IOC trên endpoint\n\nIOC loại StixFile có thể là MD5, SHA-1 hoặc SHA-256. Chọn độ dài khớp với cột hash trong log: 32 ký tự cho file.hash.md5, 64 ký tự cho file.hash.sha256.\n\nWITH ioc AS (\n  SELECT lower(observable_value) AS hash, max(score) AS score, min(malware_family) AS malware_family\n  FROM ti\n  WHERE indicator_type = 'StixFile' AND revoked = false AND length(observable_value) = 64"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "7.4 Đối chiếu IOC với log (JOIN)",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_74-%C4%91%E1%BB%91i-chi%E1%BA%BFu-ioc-v%E1%BB%9Bi-log-join",
+      "text": "GROUP BY lower(observable_value)\n)\nSELECT events.\"timestamp\", events.\"host.name\", events.\"file.name\", events.\"file.hash.sha256\",\n       ioc.score, ioc.malware_family\nFROM events\nJOIN ioc ON lower(events.\"file.hash.sha256\") = ioc.hash\nORDER BY events.\"timestamp\" DESC"
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "8.1 Giới hạn thực thi",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_81-gi%E1%BB%9Bi-h%E1%BA%A1n-th%E1%BB%B1c-thi",
+      "text": "| Giới hạn | Giá trị\n\n| Hunt đang chạy | 1 mỗi user, 3 mỗi tenant\n\n| Số dòng trả về | Mặc định 100; tối đa 10.000, thiết lập trong request\n\n| Runtime | 120 giây khi chỉ đọc hot store; 1.800 giây khi đọc lake hoặc chạy sliced hunt\n\nKhông chọn range thì query đọc 24 giờ gần nhất. Backend làm tròn xuống phút ở cả hai mốc thời gian theo UTC. Điều kiện timestamp chỉ thu hẹp range của request, không mở rộng range hay thay đổi cap.\n\nVới query không tham chiếu event.original, plain latest-row query có range tối đa 30 ngày; aggregate, DISTINCT, JOIN, CTE và subquery tối đa 7 ngày. Cap cho raw query nằm ở mục 6.1. Sắp xếp theo field khác sẽ không dùng được latest-row slicing; đọc raw text trong query không slicing có thể giảm cap xuống 1 ngày."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "8.2 Freshness, partial result và cache",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_82-freshness-partial-result-v%C3%A0-cache",
+      "text": "- Raw text search đọc lake, có thể chậm ingest vài phút đến khoảng 30 phút. Dùng field đã normalize để điều tra event mới nhất.\n\n- Kết quả có thể xuất hiện khi query chưa hoàn tất. Kiểm tra trạng thái cuối trước khi dùng làm bằng chứng.\n\n- Query dừng do resource limit trả query stopped:. Sliced query đã có dòng có thể hoàn tất với partial result: và range đã xử lý. Partial result hoặc kết quả chạm row cap không phải toàn bộ dữ liệu khớp.\n\n- Cùng SQL, time range đã làm tròn phút, nguồn log và row limit có thể dùng lại cache trong 24 giờ (cached_from). Không dùng lại cache nếu range kết thúc trong 15 phút gần nhất."
+    },
+    {
+      "title": "Threat Hunting · SQL User Guide",
+      "heading": "8.3 Các lỗi thường gặp",
+      "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_83-c%C3%A1c-l%E1%BB%97i-th%C6%B0%E1%BB%9Dng-g%E1%BA%B7p",
+      "text": "| Error code | Cách xử lý\n\n| TIME_RANGE_TOO_LONG | Thu hẹp range trong request, dùng plain latest-row query hoặc thêm điều kiện raw text dùng được index khi phù hợp.\n\n| SQL_GUARD_REJECTED | Dùng function được hỗ trợ và một statement SELECT/WITH. Bỏ keyword TABLE.\n\n| QUERY_REJECTED | Dùng events/entities/ti, không table alias hoặc tiền tố catalog/schema.\n\n| INVALID_LOG_SOURCES | Chọn Data Source đang active và thuộc tổ chức của bạn.\n\n| CONCURRENT_LIMIT_EXCEEDED | Đã chạm giới hạn hunt đang chạy (HTTP 429). Chờ hunt hoàn tất hoặc hủy hunt.\nChỉnh sửa trang nàyhoặcBáo cáo sự cố\nSaved Queries\n\nHướng dẫn xem, lọc, tìm kiếm và quản lý danh sách các truy vấn đã lưu trong Threat Hunting.\n\nOverview\n\nGiúp người dùng hiểu cách Alert xác định hoạt động đáng ngờ và Case tổ chức các hoạt động điều tra liên quan."
+    }
+  ]
+}

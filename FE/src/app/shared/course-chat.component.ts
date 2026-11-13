@@ -1,8 +1,16 @@
-import { Component, ElementRef, OnDestroy, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ChatCourse, ChatService } from '../core/chat.service';
+import { ChatCourse, ChatService, ChatSource, ChatTopic } from '../core/chat.service';
 import { AuthService } from '../core/auth.service';
 
 interface Message {
@@ -10,6 +18,8 @@ interface Message {
   role: 'user' | 'assistant';
   text: string;
   courses: ChatCourse[];
+  sources: ChatSource[];
+  topic: ChatTopic;
 }
 
 @Component({
@@ -31,13 +41,34 @@ export class CourseChatComponent implements OnDestroy {
   readonly pending = signal(false);
   readonly status = signal('');
   readonly error = signal('');
-  readonly messages = signal<Message[]>([]);
-  readonly prompts = [
-    'Liệt kê các danh mục khóa học trên Khoa',
-    'Mình mới bắt đầu học lập trình',
-    'Tìm khóa học dưới 500 nghìn',
-  ];
+  readonly topic = signal<ChatTopic>('courses');
+  private readonly conversations = signal<Message[]>([]);
+  readonly messages = computed(() =>
+    this.conversations().filter((item) => item.topic === this.topic()),
+  );
+  readonly prompts = computed(() =>
+    this.topic() === 'secops'
+      ? [
+          'Threat Hunting là gì?',
+          'Các bảng dữ liệu của Threat Hunting gồm những gì?',
+          'SIEM hoạt động như thế nào?',
+        ]
+      : [
+          'Liệt kê các danh mục khóa học trên Khoa',
+          'Mình mới bắt đầu học lập trình',
+          'Tìm khóa học dưới 500 nghìn',
+        ],
+  );
   question = '';
+
+  selectTopic(topic: ChatTopic): void {
+    if (this.pending()) return;
+    this.topic.set(topic);
+    this.error.set('');
+    this.question = '';
+    setTimeout(() => this.input()?.nativeElement.focus());
+    this.scroll();
+  }
 
   onEnter(event: Event): void {
     const key = event as KeyboardEvent;
@@ -63,35 +94,48 @@ export class CourseChatComponent implements OnDestroy {
     this.question = '';
     this.error.set('');
     this.pending.set(true);
-    this.status.set('Đang tìm khóa học phù hợp…');
+    const topic = this.topic();
+    this.status.set(
+      topic === 'secops' ? 'Đang tra cứu tài liệu CMC SecOps…' : 'Đang tìm khóa học phù hợp…',
+    );
     const replyId = this.nextId++;
-    this.messages.update((items) => [
-      ...items.slice(-30),
-      { id: this.nextId++, role: 'user', text, courses: [] },
-      { id: replyId, role: 'assistant', text: '', courses: [] },
+    this.conversations.update((items) => [
+      ...items.filter((item) => item.topic !== topic),
+      ...items.filter((item) => item.topic === topic).slice(-30),
+      { id: this.nextId++, role: 'user', text, courses: [], sources: [], topic },
+      { id: replyId, role: 'assistant', text: '', courses: [], sources: [], topic },
     ]);
     this.controller = new AbortController();
     this.scroll();
     const slug =
       /^\/(?:courses|learn|checkout)\/([a-z0-9-]+)(?:[?#]|$)/.exec(this.router.url)?.[1] ?? null;
     try {
-      await this.chat.ask(text, slug, this.controller.signal, (event) => {
-        if (event.event === 'status') this.status.set((event.data as { message: string }).message);
-        if (event.event === 'answer') {
-          const answer = event.data as { text: string };
-          this.update(replyId, { text: answer.text });
-        }
-        if (event.event === 'courses')
-          this.update(replyId, { courses: event.data as ChatCourse[] });
-        this.scroll();
-      });
+      await this.chat.ask(
+        text,
+        topic === 'courses' ? slug : null,
+        this.controller.signal,
+        (event) => {
+          if (event.event === 'status')
+            this.status.set((event.data as { message: string }).message);
+          if (event.event === 'answer') {
+            const answer = event.data as { text: string };
+            this.update(replyId, { text: answer.text });
+          }
+          if (event.event === 'courses')
+            this.update(replyId, { courses: event.data as ChatCourse[] });
+          if (event.event === 'sources')
+            this.update(replyId, { sources: event.data as ChatSource[] });
+          this.scroll();
+        },
+        topic,
+      );
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
         this.error.set(error instanceof Error ? error.message : 'Chưa kết nối được trợ lý.');
         this.question = text;
       }
     } finally {
-      this.messages.update((items) =>
+      this.conversations.update((items) =>
         items.filter((item) => item.id !== replyId || item.text || item.courses.length),
       );
       this.pending.set(false);
@@ -101,7 +145,7 @@ export class CourseChatComponent implements OnDestroy {
   }
 
   private update(id: number, changes: Partial<Message>): void {
-    this.messages.update((items) =>
+    this.conversations.update((items) =>
       items.map((item) => (item.id === id ? { ...item, ...changes } : item)),
     );
   }

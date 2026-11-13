@@ -49,6 +49,17 @@ class ChatIntegrationTests {
               {"slug":"angular-thuc-chien","title":"Wrong title","price":1,"level":"Cơ bản","reason":"Xây dựng ứng dụng web"}
             ]}
             """;
+            if (request.contains("\"topic\":\"secops\"")) {
+              body =
+                  """
+                  {"message":"Threat Hunting cho phép chủ động truy vấn dữ liệu.","intent":"documentation","courses":[],"sources":[
+                    {"title":"Threat Hunting — Tổng quan","url":"https://docs.cmctelecom.io/vi/secops/threat-hunting/overview#threat-hunting-l%C3%A0-g%C3%AC"},
+                    {"title":"Bad script","url":"javascript:alert(1)"},
+                    {"title":"Bad host","url":"https://docs.cmctelecom.io.evil.test/vi/secops/overview"},
+                    {"title":"Bad path","url":"https://docs.cmctelecom.io/vi/secops/%2e%2e/%2e%2e/admin"}
+                  ]}
+                  """;
+            }
             byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(
@@ -146,6 +157,65 @@ class ChatIntegrationTests {
     separate.getAsyncResult(10000);
     mvc.perform(asyncDispatch(separate)).andExpect(status().isOk());
     assertThat(LAST_REQUEST.get()).contains("\"history\":[]");
+  }
+
+  @Test
+  void secopsStreamsValidatedSourcesAndKeepsItsHistorySeparateFromCourses() throws Exception {
+    MockHttpSession session = new MockHttpSession();
+    var docs =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"Threat Hunting là gì?\",\"topic\":\"secops\"}"))
+            .andExpect(request().asyncStarted())
+            .andReturn();
+    docs.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(docs))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("event:sources")))
+        .andExpect(content().string(containsString("https://docs.cmctelecom.io/vi/secops/")))
+        .andExpect(content().string(org.hamcrest.Matchers.not(containsString("javascript:"))))
+        .andExpect(content().string(org.hamcrest.Matchers.not(containsString("evil.test"))))
+        .andExpect(content().string(org.hamcrest.Matchers.not(containsString("%2e%2e"))))
+        .andExpect(content().string(containsString("event:done")));
+    assertThat(LAST_REQUEST.get()).contains("\"courses\":[]", "\"history\":[]");
+
+    var course =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"Angular\"}"))
+            .andReturn();
+    course.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(course)).andExpect(status().isOk());
+    assertThat(LAST_REQUEST.get()).contains("\"history\":[]").doesNotContain("Threat Hunting");
+
+    var followUp =
+        mvc.perform(
+                post("/api/chat/messages")
+                    .session(session)
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"message\":\"Các bảng dữ liệu gồm những gì?\",\"topic\":\"secops\"}"))
+            .andReturn();
+    followUp.getAsyncResult(10000);
+    mvc.perform(asyncDispatch(followUp)).andExpect(status().isOk());
+    assertThat(LAST_REQUEST.get()).contains("Threat Hunting là gì?").doesNotContain("Angular");
+  }
+
+  @Test
+  void chatRejectsUnknownTopic() throws Exception {
+    mvc.perform(
+            post("/api/chat/messages")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"SIEM\",\"topic\":\"unknown\"}"))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

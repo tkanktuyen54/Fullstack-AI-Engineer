@@ -10,11 +10,31 @@
         khoa
         <span>.</span>
       </a>
-      <span id="chat-title">Trợ lý khóa học</span>
+      <span id="chat-title">
+        Trợ lý AI · {{ topic() === 'secops' ? 'CMC SecOps' : 'Khóa học' }}
+      </span>
       <button type="button" class="chat-close" (click)="toggle()" aria-label="Đóng tư vấn">
         ×
       </button>
     </header>
+    <div class="chat-topics" role="group" aria-label="Chủ đề hỏi đáp">
+      <button
+        type="button"
+        [attr.aria-pressed]="topic() === 'courses'"
+        [disabled]="pending()"
+        (click)="selectTopic('courses')"
+      >
+        Khóa học
+      </button>
+      <button
+        type="button"
+        [attr.aria-pressed]="topic() === 'secops'"
+        [disabled]="pending()"
+        (click)="selectTopic('secops')"
+      >
+        CMC SecOps
+      </button>
+    </div>
     @if (messages().length === 0) {
       <div class="chat-intro">
         <div class="chat-welcome">
@@ -34,12 +54,18 @@
           <h2>
             Chào {{ auth.user()?.name?.split(' ')?.[0] || 'bạn' }},
             <br />
-            hôm nay bạn muốn học gì?
+            {{ topic() === 'secops' ? 'bạn muốn tìm hiểu điều gì?' : 'hôm nay bạn muốn học gì?' }}
           </h2>
-          <p>Cùng tìm một khóa học phù hợp với bạn.</p>
+          <p>
+            {{
+              topic() === 'secops'
+                ? 'Tra cứu tài liệu SIEM và Threat Hunting của CMC Telecom.'
+                : 'Cùng tìm một khóa học phù hợp với bạn.'
+            }}
+          </p>
         </div>
         <div class="chat-prompts" aria-label="Câu hỏi gợi ý">
-          @for (prompt of prompts; track prompt) {
+          @for (prompt of prompts(); track prompt) {
             <button type="button" (click)="send(prompt)">
               {{ prompt }}
               <span aria-hidden="true">↗</span>
@@ -63,6 +89,16 @@
               <span class="chat-speaker">{{ message.role === 'user' ? 'Bạn' : '✦ Khoa' }}</span>
               @if (message.text) {
                 <p>{{ message.text }}</p>
+              }
+              @if (message.sources.length) {
+                <div class="chat-sources" aria-label="Nguồn tài liệu">
+                  <span>Nguồn tài liệu</span>
+                  @for (source of message.sources; track source.url) {
+                    <a [href]="source.url" target="_blank" rel="noopener noreferrer">
+                      {{ source.title }} ↗
+                    </a>
+                  }
+                </div>
               }
               @for (course of message.courses; track course.slug) {
                 <div class="chat-course">
@@ -105,9 +141,15 @@
       <form class="chat-composer" (ngSubmit)="send()">
         <div class="chat-context">
           <span class="chat-context-icon" aria-hidden="true">k</span>
-          Tư vấn từ danh mục khóa học Khoa
+          {{
+            topic() === 'secops'
+              ? 'Tài liệu chính thức CMC SecOps'
+              : 'Tư vấn từ danh mục khóa học Khoa'
+          }}
         </div>
-        <label class="visually-hidden" for="chat-question">Câu hỏi tư vấn khóa học</label>
+        <label class="visually-hidden" for="chat-question">
+          {{ topic() === 'secops' ? 'Câu hỏi về CMC SecOps' : 'Câu hỏi tư vấn khóa học' }}
+        </label>
         <textarea
           #questionInput
           id="chat-question"
@@ -115,18 +157,34 @@
           [(ngModel)]="question"
           maxlength="2000"
           rows="2"
-          placeholder="Hỏi về khóa học, lộ trình, học phí…"
+          [placeholder]="
+            topic() === 'secops'
+              ? 'Hỏi về SIEM, Threat Hunting, truy vấn SQL…'
+              : 'Hỏi về khóa học, lộ trình, học phí…'
+          "
           [disabled]="pending()"
           (keydown.enter)="onEnter($event)"
         ></textarea>
         <div class="chat-composer-actions">
-          <span>Chọn đúng khóa học, bắt đầu điều mới.</span>
+          <span>
+            {{
+              topic() === 'secops'
+                ? 'Tìm hiểu tính năng từ tài liệu.'
+                : 'Chọn đúng khóa học, bắt đầu điều mới.'
+            }}
+          </span>
           <button type="submit" [disabled]="pending() || !question.trim()" aria-label="Gửi câu hỏi">
             ↑
           </button>
         </div>
       </form>
-      <p class="chat-footnote">Thông tin tham khảo. Xác nhận giá tại trang khóa học.</p>
+      <p class="chat-footnote">
+        {{
+          topic() === 'secops'
+            ? 'Trích đoạn từ bản tài liệu đã nhập. Mở nguồn để xem bản mới nhất.'
+            : 'Thông tin tham khảo. Xác nhận giá tại trang khóa học.'
+        }}
+      </p>
     </div>
   </section>
 }
@@ -138,7 +196,7 @@
     (click)="toggle()"
     aria-expanded="false"
     aria-haspopup="dialog"
-    aria-label="Mở tư vấn khóa học"
+    aria-label="Mở trợ lý AI"
   >
     <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true">
       <path
@@ -146,6 +204,6 @@
         d="M12 0C13.5 7.5 16.5 10.5 24 12 16.5 13.5 13.5 16.5 12 24 10.5 16.5 7.5 13.5 0 12 7.5 10.5 10.5 7.5 12 0Z"
       />
     </svg>
-    <span>Tư vấn khóa học</span>
+    <span>Trợ lý AI</span>
   </button>
 }

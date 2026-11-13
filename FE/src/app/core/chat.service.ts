@@ -2,6 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ChatEvent, readChatEvents } from './chat-stream';
 
+export type ChatTopic = 'courses' | 'secops';
+
+export interface ChatSource {
+  title: string;
+  url: string;
+}
+
 export interface ChatCourse {
   slug: string;
   title: string;
@@ -21,6 +28,7 @@ export class ChatService {
     courseSlug: string | null,
     signal: AbortSignal,
     receive: (event: ChatEvent) => void,
+    topic: ChatTopic = 'courses',
   ): Promise<void> {
     await this.auth.csrf();
     if (signal.aborted) return;
@@ -33,7 +41,7 @@ export class ChatService {
         Accept: 'text/event-stream',
         'X-XSRF-TOKEN': cookie ? decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)) : '',
       },
-      body: JSON.stringify({ message, courseSlug }),
+      body: JSON.stringify({ message, courseSlug, topic }),
       signal,
     });
     if (!response.ok) {

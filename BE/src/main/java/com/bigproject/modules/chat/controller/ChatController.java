@@ -31,18 +31,24 @@ public class ChatController {
     var state = chat.begin(session);
     var emitter = new SseEmitter(30_000L);
     Thread.ofVirtual()
-        .name("course-advisor")
+        .name("ai-assistant")
         .start(
             () -> {
               try {
                 emitter.send(
                     SseEmitter.event()
                         .name("status")
-                        .data(Map.of("message", "Đang tìm khóa học phù hợp…")));
+                        .data(
+                            Map.of(
+                                "message",
+                                "secops".equals(request.topic())
+                                    ? "Đang tra cứu tài liệu CMC SecOps…"
+                                    : "Đang tìm khóa học phù hợp…")));
                 var reply = chat.answer(request, state, user == null ? null : user.id());
                 emitter.send(
                     SseEmitter.event().name("answer").data(Map.of("text", reply.message())));
                 emitter.send(SseEmitter.event().name("courses").data(reply.courses()));
+                emitter.send(SseEmitter.event().name("sources").data(reply.sources()));
                 emitter.send(
                     SseEmitter.event().name("done").data(Map.of("intent", reply.intent())));
                 emitter.complete();

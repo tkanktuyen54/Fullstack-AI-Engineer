@@ -67,6 +67,27 @@
 .chat-close:hover {
   background: #e9eee7;
 }
+.chat-topics {
+  display: flex;
+  gap: 8px;
+  padding: 0 22px 12px;
+}
+.chat-topics button {
+  border: 1px solid #dce5d6;
+  border-radius: 20px;
+  background: white;
+  color: var(--green);
+  padding: 9px 14px;
+  font-size: 12px;
+}
+.chat-topics button[aria-pressed='true'] {
+  background: var(--green);
+  color: white;
+}
+.chat-topics button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 .chat-intro {
   flex: 1;
   min-height: 0;
@@ -165,6 +186,24 @@
   background: #e9efe6;
   padding: 12px 16px;
   border-radius: 18px 4px 18px 18px;
+}
+.chat-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #dce5d6;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.chat-sources > span {
+  color: var(--muted);
+}
+.chat-sources a {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .chat-course {
   padding: 16px;

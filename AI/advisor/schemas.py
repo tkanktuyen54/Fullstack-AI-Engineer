@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +42,7 @@ class Turn(BaseModel):
 
 class AdviceRequest(BaseModel):
   message: str = Field(min_length=1, max_length=2000)
+  topic: Literal["courses", "secops"] = "courses"
   courseSlug: Optional[str] = Field(default=None, pattern=r"^[a-z0-9-]{1,150}$")
   history: List[Turn] = Field(default_factory=list, max_length=12)
   courses: List[Course] = Field(default_factory=list, max_length=5000)
@@ -55,8 +56,14 @@ class Suggestion(BaseModel):
   reason: str
 
 
+class DocumentSource(BaseModel):
+  title: str
+  url: str
+
+
 class AdviceReply(BaseModel):
   message: str
   intent: str
   courses: List[Suggestion]
   engine: str
+  sources: List[DocumentSource] = Field(default_factory=list)

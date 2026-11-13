@@ -27,6 +27,7 @@ services:
     environment:
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
       AI_CATALOG_PATH: /app/imported/catalog.json
+      AI_KNOWLEDGE_PATH: /app/imported/secops.json
       AI_MODEL_PATH: ${AI_MODEL_PATH:-}
     volumes:
       - ../AI/data:/app/imported:ro
