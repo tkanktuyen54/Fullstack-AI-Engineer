@@ -183,3 +183,45 @@ def test_stream_route_authenticates_before_headers_and_returns_json_lines(monkey
     events = [json.loads(line) for line in response.text.splitlines()]
     assert any(event["type"] == "delta" for event in events)
     assert events[-1]["reply"]["message"] == ANSWER
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_complete_validation_withholds_draft_until_evidence_is_checked(valid):
+  evidence = EVIDENCE if valid else "Bằng chứng không có trong nguồn"
+  stream = ModelStream(json.dumps({"answer": ANSWER, "evidence": evidence}))
+  llm = client_for(stream)
+  rag = RagService(KnowledgeBase.load(DEFAULT_PATH), llm, stream_validation="complete")
+  generation = rag.stream(AdviceRequest(message="Threat Hunting là gì?", topic="secops"))
+  try:
+    events = []
+    for event in generation:
+      if event["type"] == "delta":
+        # ModelStream only yields its final done frame after all evidence was consumed.
+        assert valid
+        assert llm.slot.acquire(blocking=False) is False
+      events.append(event)
+    deltas = [event["text"] for event in events if event["type"] == "delta"]
+    assert deltas == ([ANSWER] if valid else [])
+    assert events[-1]["reply"]["answerMode"] == ("generated" if valid else "extractive")
+    assert stream.closed
+  finally:
+    generation.close()
+    llm.close()
+
+
+def test_complete_validation_never_publishes_evidence_embedded_in_answer():
+  stream = ModelStream(
+    json.dumps({"answer": ANSWER + " Evidence: " + EVIDENCE, "evidence": EVIDENCE})
+  )
+  llm = client_for(stream)
+  try:
+    events = list(
+      RagService(KnowledgeBase.load(DEFAULT_PATH), llm, stream_validation="complete").stream(
+        AdviceRequest(message="Threat Hunting là gì?", topic="secops")
+      )
+    )
+    assert not any(event["type"] == "delta" for event in events)
+    assert events[-1]["reply"]["answerMode"] == "extractive"
+    assert "Evidence:" not in events[-1]["reply"]["message"]
+  finally:
+    llm.close()

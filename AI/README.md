@@ -6,6 +6,8 @@ Angular mở sidebar bên phải → Spring Boot giữ phiên, CSRF và dữ li�
 
 `advisor/app.py` là điểm chạy ASGI; các phần API, cấu hình, nhập dữ liệu, truy xuất, LLM và huấn luyện nằm trong các package riêng. Xem [sơ đồ thư mục, trách nhiệm và nguồn tham khảo](docs/architecture.md). Dữ liệu vẫn ở `data/`, checkpoint TinyGPT ở `artifacts/`, trọng số Qwen do Ollama quản lý bên ngoài repository.
 
+Xem [vận hành bằng Docker, readiness, log/metrics và cấu hình production](docs/operations.md), cùng [bộ đánh giá RAG](evals/README.md). Chưa thiết lập CI theo nhu cầu hiện tại.
+
 ## Hỏi đáp tài liệu CMC SecOps
 
 Mở **Trợ lý AI** trên website, chọn **CMC SecOps**, rồi nhập câu hỏi như:

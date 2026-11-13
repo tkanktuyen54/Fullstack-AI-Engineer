@@ -26,8 +26,15 @@ services:
   advisor:
     build: ../AI
     image: khoa-advisor:latest
+    restart: unless-stopped
+    stop_grace_period: 60s
+    mem_limit: ${AI_MEMORY_LIMIT:-2g}
     environment:
+      AI_ENVIRONMENT: ${AI_ENVIRONMENT:-development}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+      AI_REQUIRE_KNOWLEDGE: ${AI_REQUIRE_KNOWLEDGE:-true}
+      AI_READINESS_REQUIRE_LLM: ${AI_READINESS_REQUIRE_LLM:-false}
+      AI_MAX_ACTIVE_REQUESTS: ${AI_MAX_ACTIVE_REQUESTS:-8}
       AI_CATALOG_PATH: /app/imported/catalog.json
       AI_KNOWLEDGE_PATH: /app/imported/secops.json
       AI_MODEL_PATH: ${AI_MODEL_PATH:-}
@@ -45,11 +52,16 @@ services:
       - ../AI/data:/app/imported:ro
       - ../AI/artifacts:/app/artifacts:ro
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
       interval: 10s
       timeout: 5s
       retries: 15
       start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   mysql:
     image: mysql:8.4

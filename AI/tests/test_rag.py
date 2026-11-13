@@ -74,6 +74,8 @@ def test_generated_answer_is_grounded_and_request_has_small_local_model_limits(
     ("Threat Hunting giữ dữ liệu trong 9999 ngày.", EVIDENCE),
     (ANSWER + " Xem https://evil.test", EVIDENCE),
     ("<think>thinking</think>" + ANSWER, EVIDENCE),
+    (ANSWER + " Evidence: " + EVIDENCE, EVIDENCE),
+    (ANSWER + " Thinking: " + EVIDENCE, EVIDENCE),
     ("Món phở bò gồm bánh phở và thịt bò.", EVIDENCE),
   ],
 )

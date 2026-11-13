@@ -47,4 +47,5 @@ __pycache__/
 .ruff_cache/
 AI/.venv/
 AI/artifacts/
+AI/evals/reports/
 AI/data/catalog.json

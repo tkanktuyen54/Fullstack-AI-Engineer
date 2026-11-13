@@ -4,6 +4,7 @@ import json
 import math
 import re
 from collections import Counter
+from hashlib import sha256
 from pathlib import Path
 
 from ..api.schemas import AdviceReply, AdviceRequest, DocumentSource
@@ -22,6 +23,8 @@ STOP_WORDS = set(
 
 def terms(text: str) -> list:
   text = normalize(text)
+  # A result-row limit and a returned-row limit refer to the same execution constraint.
+  text = re.sub(r"\bdong ket qua\b", "dong tra ve", text)
   for pattern, expansion in (
     (r"\bnew query\b", "tao chay truy van moi"),
     (r"\b(?:query|queries)\b", "truy van"),
@@ -42,6 +45,9 @@ class KnowledgeBase:
     self.updated_at = payload["fetchedAt"]
     self.pages = payload["pages"]
     self.chunks = payload["chunks"]
+    self.revision = sha256(
+      json.dumps(self.chunks, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
     for page in self.pages:
       document_url(page)
     for chunk in self.chunks:
@@ -112,6 +118,14 @@ class KnowledgeBase:
         prior = self.search(question, page) or self.search(question)
         if prior:
           page = self.chunks[prior[0][1]]["url"].split("#")[0]
+    question = normalize(request.message)
+    if (
+      re.search(r"\b(?:toi da|gioi han)\b", question)
+      and re.search(r"\b(?:dong|ket qua|thoi gian|runtime)\b", question)
+      and not re.search(r"hien thi|max result shown", question)
+    ):
+      # Execution limits live in the SQL guide even after a New Query follow-up.
+      page = ""
     matches = self.search(request.message, page)
     if not matches and page:
       matches = self.search(request.message)

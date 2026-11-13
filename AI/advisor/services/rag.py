@@ -1,19 +1,20 @@
 """Retrieve documentation, generate locally, then validate before publishing any answer."""
 
-import logging
+import time
 from contextlib import closing
 
 from ..api.schemas import AdviceReply
+from ..core.telemetry import log_event
 from ..llm.ollama import InvalidGeneration, ModelBusy, ModelUnavailable
 from .guardrails import contains_instruction_override, valid_fragment, valid_generation
 
-logger = logging.getLogger(__name__)
-
 
 class RagService:
-  def __init__(self, knowledge, llm):
+  def __init__(self, knowledge, llm, telemetry=None, stream_validation="incremental"):
     self.knowledge = knowledge
     self.llm = llm
+    self.telemetry = telemetry
+    self.stream_validation = stream_validation
 
   def _prepare(self, request):
     if contains_instruction_override(request.message):
@@ -24,11 +25,14 @@ class RagService:
         engine="secops-guardrail",
         answerMode="blocked",
       ), []
+    started = time.monotonic()
     passages = [
       passage
       for passage in self.knowledge.retrieve(request)
       if not contains_instruction_override(passage["text"])
     ]
+    if self.telemetry:
+      self.telemetry.retrieval.observe(time.monotonic() - started)
     fallback = self.knowledge.answer(request, passages=passages)
     if not passages:
       return fallback, []
@@ -48,6 +52,14 @@ class RagService:
     return fallback, contexts
 
   def answer(self, request) -> AdviceReply:
+    started = time.monotonic()
+    reply = self._answer(request)
+    self._record_reply(reply, started)
+    if self.telemetry:
+      self.telemetry.first_answer.observe(time.monotonic() - started)
+    return reply
+
+  def _answer(self, request) -> AdviceReply:
     fallback, contexts = self._prepare(request)
     if not contexts:
       return fallback
@@ -72,10 +84,32 @@ class RagService:
       ModelBusy: "model_busy",
       InvalidGeneration: "invalid_generation",
     }[type(error)]
-    logger.info("SecOps RAG uses an extractive answer: %s", reason)
     return fallback.model_copy(update={"fallbackReason": reason})
 
   def stream(self, request):
+    started = time.monotonic()
+    published = False
+    with closing(self._stream(request)) as events:
+      for event in events:
+        if event["type"] in ("delta", "result") and not published:
+          published = True
+          if self.telemetry:
+            self.telemetry.first_answer.observe(time.monotonic() - started)
+        if event["type"] == "result":
+          self._record_reply(AdviceReply.model_validate(event["reply"]), started)
+        yield event
+
+  def _record_reply(self, reply, started):
+    if self.telemetry:
+      self.telemetry.record_reply(reply)
+    log_event(
+      "rag_answer",
+      mode=reply.answerMode,
+      reason=reply.fallbackReason or "none",
+      seconds=round(time.monotonic() - started, 4),
+    )
+
+  def _stream(self, request):
     yield {"type": "status", "message": "Đang tìm thông tin trong tài liệu…"}
     fallback, contexts = self._prepare(request)
     if not contexts:
@@ -104,6 +138,9 @@ class RagService:
             yield {"type": "result", "reply": reply.model_dump(mode="json")}
             return
           pending += part.delta
+          # Production can withhold all draft text until the final checks pass.
+          if self.stream_validation == "complete":
+            continue
           # Publish short whole-word fragments, not a simulated typewriter after generation.
           while len(pending) >= 32:
             end = pending.rfind(" ", 0, 33)

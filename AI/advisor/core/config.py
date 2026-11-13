@@ -1,7 +1,7 @@
 """Environment configuration and workspace paths; importing performs no I/O."""
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -15,6 +15,41 @@ def env_bool(name: str, default: bool) -> bool:
   if value not in ("true", "false"):
     raise ValueError(f"{name} phải là true hoặc false.")
   return value == "true"
+
+
+@dataclass(frozen=True)
+class AppSettings:
+  environment: str = "development"
+  service_token: str = field(default="", repr=False)
+  require_knowledge: bool = False
+  readiness_require_llm: bool = False
+  stream_validation: str = "incremental"
+  max_active_requests: int = 8
+
+  @classmethod
+  def from_env(cls):
+    environment = os.getenv("AI_ENVIRONMENT", "development")
+    if environment not in ("development", "test", "production"):
+      raise ValueError("AI_ENVIRONMENT phải là development, test hoặc production.")
+    settings = cls(
+      environment=environment,
+      service_token=os.getenv("AI_SERVICE_TOKEN", ""),
+      require_knowledge=env_bool("AI_REQUIRE_KNOWLEDGE", False),
+      readiness_require_llm=env_bool("AI_READINESS_REQUIRE_LLM", False),
+      stream_validation=os.getenv(
+        "AI_STREAM_VALIDATION", "complete" if environment == "production" else "incremental"
+      ),
+      max_active_requests=int(os.getenv("AI_MAX_ACTIVE_REQUESTS", "8")),
+    )
+    if environment == "production" and (
+      len(settings.service_token) < 32 or settings.service_token.isspace()
+    ):
+      raise ValueError("Production cần AI_SERVICE_TOKEN ít nhất 32 ký tự.")
+    if settings.stream_validation not in ("incremental", "complete"):
+      raise ValueError("AI_STREAM_VALIDATION phải là incremental hoặc complete.")
+    if not 1 <= settings.max_active_requests <= 128:
+      raise ValueError("AI_MAX_ACTIVE_REQUESTS phải nằm trong khoảng 1–128.")
+    return settings
 
 
 @dataclass(frozen=True)

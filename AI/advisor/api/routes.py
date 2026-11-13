@@ -6,8 +6,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from starlette.responses import JSONResponse, Response
 
-from ..core.security import validate_request
+from ..core.security import validate_request, validate_token
+from ..core.telemetry import log_event
 from ..services.courses import advise
 from .schemas import AdviceReply, AdviceRequest
 
@@ -15,8 +17,8 @@ router = APIRouter()
 
 
 def runtime(request: AdviceRequest, http: Request, token):
-  validate_request(request, token)
   state = http.app.state
+  validate_request(request, token, state.settings.service_token)
   if request.topic == "secops" and state.knowledge is None:
     raise HTTPException(status_code=503, detail="Kho tài liệu CMC SecOps chưa được nhập.")
   return state
@@ -32,8 +34,51 @@ def health(http: Request):
     "knowledgePages": len(state.knowledge.pages) if state.knowledge else 0,
     "knowledgeChunks": len(state.knowledge.chunks) if state.knowledge else 0,
     "knowledgeUpdatedAt": state.knowledge.updated_at if state.knowledge else None,
+    "knowledgeRevision": state.knowledge.revision if state.knowledge else None,
     "llm": state.llm.health(),
   }
+
+
+@router.get("/health/live")
+def live():
+  # Liveness must not restart the API just because Ollama is temporarily unavailable.
+  return {"status": "alive"}
+
+
+@router.get("/health/ready")
+def ready(http: Request):
+  state = http.app.state
+  knowledge_ready = bool(state.knowledge and state.knowledge.chunks)
+  llm = state.llm.health()
+  llm_ready = llm["enabled"] and llm["reachable"] and llm["available"]
+  available = (not state.settings.require_knowledge or knowledge_ready) and (
+    not state.settings.readiness_require_llm or llm_ready
+  )
+  status = "ready"
+  if llm["enabled"] and not llm_ready:
+    status = "degraded"
+  if not available:
+    status = "not_ready"
+  return JSONResponse(
+    {
+      "status": status,
+      "checks": {"knowledge": knowledge_ready, "llm": llm_ready},
+      "requirements": {
+        "knowledge": state.settings.require_knowledge,
+        "llm": state.settings.readiness_require_llm,
+      },
+    },
+    status_code=200 if available else 503,
+  )
+
+
+@router.get("/metrics", include_in_schema=False)
+def metrics(http: Request, x_advisor_token: Optional[str] = Header(default=None)):
+  validate_token(x_advisor_token, http.app.state.settings.service_token)
+  return Response(
+    http.app.state.telemetry.render(),
+    headers={"Content-Type": "text/plain; version=0.0.4; charset=utf-8"},
+  )
 
 
 @router.post("/v1/advise", response_model=AdviceReply)
@@ -64,7 +109,9 @@ def advice_stream(
       with closing(events()) as stream:
         for event in stream:
           yield json.dumps(event, ensure_ascii=False) + "\n"
-    except Exception:
+    except Exception as error:
+      state.telemetry.stream_errors.inc()
+      log_event("stream_error", errorType=type(error).__name__)
       yield (
         json.dumps(
           {"type": "error", "message": "Trợ lý chưa trả lời được. Bạn thử lại nhé."},

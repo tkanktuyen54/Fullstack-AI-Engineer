@@ -27,9 +27,17 @@ def compact(text: str) -> str:
   return " ".join(text.casefold().split())
 
 
+def contains_internal_output(text: str) -> bool:
+  # Small models sometimes copy a second JSON field into the answer string itself.
+  # The stream decoder cannot remove metadata that is already inside that string.
+  return bool(
+    re.search(r"(?:^|\s)[\"']?(?:evidence|thinking|reasoning)[\"']?\s*:", text, re.IGNORECASE)
+  )
+
+
 def valid_fragment(answer: str, contexts: list) -> bool:
   """Check a whole-word prefix before publishing it; final evidence is checked separately."""
-  if contains_instruction_override(answer):
+  if contains_instruction_override(answer) or contains_internal_output(answer):
     return False
   if re.search(r"https?://|www\.|<think>|</think>|<\|", answer, flags=re.IGNORECASE):
     return False
@@ -42,7 +50,12 @@ def valid_fragment(answer: str, contexts: list) -> bool:
 
 
 def valid_generation(answer: str, evidence: str, contexts: list, question: str = "") -> bool:
-  if not answer.strip() or not evidence.strip() or contains_instruction_override(answer):
+  if (
+    not answer.strip()
+    or not evidence.strip()
+    or contains_instruction_override(answer)
+    or contains_internal_output(answer)
+  ):
     return False
   if re.search(r"https?://|www\.|<think>|</think>|<\|", answer, flags=re.IGNORECASE):
     return False

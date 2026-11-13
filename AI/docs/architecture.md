@@ -8,12 +8,16 @@ AI/
     app.py                     # Tạo FastAPI app, ghép router và lifespan
     api/
       routes.py                # /health, /v1/advise, /v1/advise/stream
+      middleware.py            # Request ID, giới hạn request, đo toàn bộ stream
       schemas.py               # Hợp đồng request/response Pydantic
     core/
       config.py                # Biến môi trường, giới hạn model, đường dẫn dữ liệu
       runtime.py               # Nạp tài nguyên lúc khởi động và đóng HTTP client
       security.py              # Token nội bộ, kiểm tra request chung
       text.py                  # Chuẩn hóa tiếng Việt dùng chung
+      telemetry.py             # Log JSON, registry metrics riêng từng app/process
+    evaluation/
+      runner.py                # CLI đo retrieval, đáp án và từ chối, tùy chọn dùng Qwen thật
     ingestion/
       catalog.py               # CLI nhập Excel/CSV thành danh mục JSON
       documents.py             # CLI tải, làm sạch, chia đoạn tài liệu CMC
@@ -33,6 +37,7 @@ AI/
   data/                        # Tài liệu đã nhập và tập dữ liệu mẫu
   artifacts/                   # Checkpoint TinyGPT, không đưa vào Git
   tests/                       # API, nhập dữ liệu, retrieval, model và streaming
+  evals/                       # Câu hỏi chuẩn, nguồn/ý bắt buộc, hướng dẫn đánh giá
   docs/                        # Tài liệu kiến trúc
   .env.example                 # Mẫu biến môi trường, không tự nạp
   pyproject.toml               # Cấu hình Ruff và pytest
