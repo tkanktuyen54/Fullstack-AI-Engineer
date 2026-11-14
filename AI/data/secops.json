@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "fetchedAt": "2026-11-13T08:25:32.292241+00:00",
+  "fetchedAt": "2026-11-13T17:57:24.445482+00:00",
   "pages": [
     "https://docs.cmctelecom.io/vi/secops/siem-overview",
     "https://docs.cmctelecom.io/vi/secops/threat-hunting/overview",
     "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query",
     "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries",
-    "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide"
+    "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide",
+    "https://docs.cmctelecom.io/vi/secops/search/overview"
   ],
   "chunks": [
     {
@@ -25,7 +26,7 @@
       "title": "SIEM",
       "heading": "SIEM hoạt động như thế nào",
       "url": "https://docs.cmctelecom.io/vi/secops/siem-overview#siem-ho%E1%BA%A1t-%C4%91%E1%BB%99ng-nh%C6%B0-th%E1%BA%BF-n%C3%A0o",
-      "text": "Quy trình xử lý dữ liệu SIEM thường gồm các bước sau:\n\n- Thu thập dữ liệu: Tiếp nhận log và event từ các nguồn CNTT, mạng, đám mây và an toàn thông tin thông qua các kết nối được hỗ trợ.\n\n- Phân tích và chuẩn hóa: Phân tích cấu trúc log, trích xuất các trường cần thiết và chuyển đổi dữ liệu về mô hình thống nhất.\n\n- Lưu trữ và lập chỉ mục: Lưu raw log và event để phục vụ truy vấn, điều tra và phân tích trong thời gian phù hợp với chính sách của tổ chức.\n\n- Tìm kiếm và tương quan: Cho phép truy vấn dữ liệu theo từ khóa, trường dữ liệu hoặc các điều kiện logic; đồng thời kết hợp nhiều sự kiện để nhận diện mẫu hành vi.\n\n- Phát hiện mối đe dọa: Áp dụng rule và các phương pháp phân tích để xác định sự kiện hoặc chuỗi sự kiện có rủi ro.\n\n- Tạo cảnh báo và điều tra: Sinh Alert khi điều kiện phát hiện được đáp ứng, sau đó cung cấp dữ liệu liên quan để chuyên viên phân tích đánh giá.\n\n- Theo dõi và cải thiện: Ghi nhận kết quả xử lý, đo lường hiệu quả phát hiện và tinh chỉnh rule để giảm cảnh báo sai hoặc tăng phạm vi bao phủ.\n\nChỉnh sửa trang nàyhoặcBáo cáo sự cố\nData Onboarding\n\nHướng dẫn người dùng kết nối nguồn log và đưa dữ liệu bảo mật vào CMC SecOps.\n\nOverview\n\nTổng quan về Data Pipeline, vai trò của Sources, Transformation và Destinations, cùng hai cơ chế xử lý Processors và Passthrough."
+      "text": "Quy trình xử lý dữ liệu SIEM thường gồm các bước sau:\n\n- Thu thập dữ liệu: Tiếp nhận log và event từ các nguồn CNTT, mạng, đám mây và an toàn thông tin thông qua các kết nối được hỗ trợ.\n\n- Phân tích và chuẩn hóa: Phân tích cấu trúc log, trích xuất các trường cần thiết và chuyển đổi dữ liệu về mô hình thống nhất.\n\n- Lưu trữ và lập chỉ mục: Lưu raw log và event để phục vụ truy vấn, điều tra và phân tích trong thời gian phù hợp với chính sách của tổ chức.\n\n- Tìm kiếm và tương quan: Cho phép truy vấn dữ liệu theo từ khóa, trường dữ liệu hoặc các điều kiện logic; đồng thời kết hợp nhiều sự kiện để nhận diện mẫu hành vi.\n\n- Phát hiện mối đe dọa: Áp dụng rule và các phương pháp phân tích để xác định sự kiện hoặc chuỗi sự kiện có rủi ro.\n\n- Tạo cảnh báo và điều tra: Sinh Alert khi điều kiện phát hiện được đáp ứng, sau đó cung cấp dữ liệu liên quan để chuyên viên phân tích đánh giá.\n\n- Theo dõi và cải thiện: Ghi nhận kết quả xử lý, đo lường hiệu quả phát hiện và tinh chỉnh rule để giảm cảnh báo sai hoặc tăng phạm vi bao phủ."
     },
     {
       "title": "Threat Hunting · Overview",
@@ -61,7 +62,7 @@
       "title": "Threat Hunting · Run a new query",
       "heading": "Lưu truy vấn (Save Query)",
       "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/new-query#l%C6%B0u-truy-v%E1%BA%A5n-save-query",
-      "text": "Sau khi soạn xong câu truy vấn, nhấn Save để mở popup Save Query và lưu lại truy vấn cho lần sử dụng sau.\n\nPopup gồm các thông tin:\n\n- Query Name (bắt buộc): tên của truy vấn.\n\n- Description: mô tả thêm về mục đích, nội dung của truy vấn.\n\n- Visibility: chế độ hiển thị của truy vấn sau khi lưu, gồm 2 lựa chọn:\n\n- Personal: chỉ người tạo mới xem được truy vấn sau khi lưu.\n\n- Project: truy vấn được chia sẻ với tất cả người dùng trong Project.\n\nCác bước thực hiện:\n\n- Nhấn Save trên thanh công cụ của màn hình New Query.\n\n- Nhập Query Name cho truy vấn.\n\n- (Tùy chọn) Nhập Description để mô tả thêm về truy vấn.\n\n- Chọn Visibility phù hợp: Personal hoặc Project.\n\n- Nhấn Save trong popup để hoàn tất, hoặc Cancel để hủy và đóng popup.\n\nTruy vấn sau khi lưu sẽ xuất hiện trong danh sách Custom tại tab Saved Queries. Xem thêm tại Quản lý Saved Queries.Chỉnh sửa trang nàyhoặcBáo cáo sự cố\nOverview\n\nGiới thiệu tính năng Threat Hunting, cho phép chủ động truy vấn dữ liệu trên các bảng events và entities bằng cú pháp SQL để điều tra và săn tìm mối đe dọa.\n\nSaved Queries\n\nHướng dẫn xem, lọc, tìm kiếm và quản lý danh sách các truy vấn đã lưu trong Threat Hunting."
+      "text": "Sau khi soạn xong câu truy vấn, nhấn Save để mở popup Save Query và lưu lại truy vấn cho lần sử dụng sau.\n\nPopup gồm các thông tin:\n\n- Query Name (bắt buộc): tên của truy vấn.\n\n- Description: mô tả thêm về mục đích, nội dung của truy vấn.\n\n- Visibility: chế độ hiển thị của truy vấn sau khi lưu, gồm 2 lựa chọn:\n\n- Personal: chỉ người tạo mới xem được truy vấn sau khi lưu.\n\n- Project: truy vấn được chia sẻ với tất cả người dùng trong Project.\n\nCác bước thực hiện:\n\n- Nhấn Save trên thanh công cụ của màn hình New Query.\n\n- Nhập Query Name cho truy vấn.\n\n- (Tùy chọn) Nhập Description để mô tả thêm về truy vấn.\n\n- Chọn Visibility phù hợp: Personal hoặc Project.\n\n- Nhấn Save trong popup để hoàn tất, hoặc Cancel để hủy và đóng popup.\n\nTruy vấn sau khi lưu sẽ xuất hiện trong danh sách Custom tại tab Saved Queries. Xem thêm tại Quản lý Saved Queries."
     },
     {
       "title": "Threat Hunting · Saved Queries",
@@ -97,7 +98,7 @@
       "title": "Threat Hunting · Saved Queries",
       "heading": "Phân trang",
       "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/saved-queries#ph%C3%A2n-trang",
-      "text": "- Sử dụng Items per page ở cuối bảng để thay đổi số lượng truy vấn hiển thị trên mỗi trang.\n\n- Dùng các nút điều hướng trang bên cạnh để chuyển qua lại giữa các trang kết quả.\n\nChỉnh sửa trang nàyhoặcBáo cáo sự cố\nRun a new query\n\nHướng dẫn tạo, cấu hình và chạy một truy vấn SQL-like trong Threat Hunting, xem kết quả và lưu lại truy vấn.\n\nSQL User Guide\n\nDanh sách các hàm SQL được hỗ trợ trong Threat Hunting, kèm ví dụ và các giới hạn cần lưu ý."
+      "text": "- Sử dụng Items per page ở cuối bảng để thay đổi số lượng truy vấn hiển thị trên mỗi trang.\n\n- Dùng các nút điều hướng trang bên cạnh để chuyển qua lại giữa các trang kết quả."
     },
     {
       "title": "Threat Hunting · SQL User Guide",
@@ -271,7 +272,13 @@
       "title": "Threat Hunting · SQL User Guide",
       "heading": "8.3 Các lỗi thường gặp",
       "url": "https://docs.cmctelecom.io/vi/secops/threat-hunting/sql-user-guide#_83-c%C3%A1c-l%E1%BB%97i-th%C6%B0%E1%BB%9Dng-g%E1%BA%B7p",
-      "text": "| Error code | Cách xử lý\n\n| TIME_RANGE_TOO_LONG | Thu hẹp range trong request, dùng plain latest-row query hoặc thêm điều kiện raw text dùng được index khi phù hợp.\n\n| SQL_GUARD_REJECTED | Dùng function được hỗ trợ và một statement SELECT/WITH. Bỏ keyword TABLE.\n\n| QUERY_REJECTED | Dùng events/entities/ti, không table alias hoặc tiền tố catalog/schema.\n\n| INVALID_LOG_SOURCES | Chọn Data Source đang active và thuộc tổ chức của bạn.\n\n| CONCURRENT_LIMIT_EXCEEDED | Đã chạm giới hạn hunt đang chạy (HTTP 429). Chờ hunt hoàn tất hoặc hủy hunt.\nChỉnh sửa trang nàyhoặcBáo cáo sự cố\nSaved Queries\n\nHướng dẫn xem, lọc, tìm kiếm và quản lý danh sách các truy vấn đã lưu trong Threat Hunting.\n\nOverview\n\nGiúp người dùng hiểu cách Alert xác định hoạt động đáng ngờ và Case tổ chức các hoạt động điều tra liên quan."
+      "text": "| Error code | Cách xử lý\n\n| TIME_RANGE_TOO_LONG | Thu hẹp range trong request, dùng plain latest-row query hoặc thêm điều kiện raw text dùng được index khi phù hợp.\n\n| SQL_GUARD_REJECTED | Dùng function được hỗ trợ và một statement SELECT/WITH. Bỏ keyword TABLE.\n\n| QUERY_REJECTED | Dùng events/entities/ti, không table alias hoặc tiền tố catalog/schema.\n\n| INVALID_LOG_SOURCES | Chọn Data Source đang active và thuộc tổ chức của bạn.\n\n| CONCURRENT_LIMIT_EXCEEDED | Đã chạm giới hạn hunt đang chạy (HTTP 429). Chờ hunt hoàn tất hoặc hủy hunt."
+    },
+    {
+      "title": "Search · Overview",
+      "heading": "Tổng quan",
+      "url": "https://docs.cmctelecom.io/vi/secops/search/overview",
+      "text": "Tính năng Search là công cụ cốt lõi cho phép người dùng khai thác, truy vấn và phân tích dữ liệu log tập trung một cách linh hoạt.\n\nPhương thức tìm kiếm\n\n- Query search: Hỗ trợ ngôn ngữ Lucene hoặc SQL để tìm kiếm theo trường (field), kết hợp điều kiện logic và chọn các cột cần xem.\n\n- Text search: Phương thức tìm kiếm văn bản tự do đơn giản.\n\nPhạm vi và loại dữ liệu áp dụng\n\n- Raw logs: Dữ liệu nguyên bản, chưa qua xử lý, giữ đúng định dạng gốc từ nguồn đẩy về.\n\n- Events: Dữ liệu đã được phân tích (parsed) và chuẩn hóa theo mô hình Common Schema Model (CSM)."
     }
   ]
 }

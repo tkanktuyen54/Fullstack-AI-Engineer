@@ -51,6 +51,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/chat/config")
                     .permitAll()
+                    .requestMatchers("/api/mcp/employees")
+                    .hasAnyRole("HR", "HR_APPROVER", "ADMIN")
                     .requestMatchers(
                         HttpMethod.GET,
                         "/",

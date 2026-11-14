@@ -69,6 +69,7 @@
 }
 .chat-topics {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 22px 12px;
 }

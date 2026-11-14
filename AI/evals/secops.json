@@ -131,6 +131,34 @@
       "requiredFacts": ["điều tra", "bất thường"],
       "forbiddenFacts": ["Evidence:", "Thinking:"],
       "referenceAnswer": "Có, tính năng phục vụ săn tìm và điều tra dấu hiệu bất thường trong hệ thống."
+    },
+    {
+      "id": "search-feature-definition",
+      "question": "Tính năng Search",
+      "expectedMode": "answer",
+      "sources": [{"path": "/vi/secops/search/overview", "heading": "Tổng quan"}],
+      "requiredFacts": ["Query search", "Text search", "Raw logs", "Events"],
+      "forbiddenFacts": ["Investigate → Threat Hunting"],
+      "referenceAnswer": "Search dùng để truy vấn và phân tích log tập trung; có Query search và Text search, áp dụng cho Raw logs và Events."
+    },
+    {
+      "id": "switch-from-hunting-to-search",
+      "question": "Tính năng Search là gì?",
+      "history": [{"role": "user", "content": "Threat Hunting là gì?"}],
+      "expectedMode": "answer",
+      "sources": [{"path": "/vi/secops/search/overview", "heading": "Tổng quan"}],
+      "requiredFacts": ["Search", "log"],
+      "forbiddenFacts": ["Investigate → Threat Hunting"],
+      "referenceAnswer": "Chuyển sang tài liệu Search thay vì tiếp tục trả lời về Threat Hunting."
+    },
+    {
+      "id": "search-follow-up",
+      "question": "Các phương thức tìm kiếm gồm những gì?",
+      "history": [{"role": "user", "content": "Tính năng Search"}],
+      "expectedMode": "answer",
+      "sources": [{"path": "/vi/secops/search/overview", "heading": "Tổng quan"}],
+      "requiredFacts": ["Query search", "Text search"],
+      "referenceAnswer": "Hai phương thức Search được mô tả là Query search và Text search."
     }
   ]
 }

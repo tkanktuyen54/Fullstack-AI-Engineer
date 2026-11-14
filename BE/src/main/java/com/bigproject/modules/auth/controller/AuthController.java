@@ -58,7 +58,7 @@ public class AuthController {
 
   @GetMapping("/me")
   public UserResponse me(@AuthenticationPrincipal CurrentUser user) {
-    return UserResponse.from(auth.me(user.id()));
+    return UserResponse.from(auth.me(user.id()), auth.roles(user.id()));
   }
 
   private UserResponse signIn(
@@ -75,6 +75,6 @@ public class AuthController {
     context.setAuthentication(authentication);
     SecurityContextHolder.setContext(context);
     contexts.saveContext(context, request, response);
-    return UserResponse.from(account);
+    return UserResponse.from(account, auth.roles(account.id()));
   }
 }

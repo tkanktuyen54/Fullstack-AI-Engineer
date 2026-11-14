@@ -23,6 +23,8 @@ STOP_WORDS = set(
 
 def terms(text: str) -> list:
   text = normalize(text)
+  # Generic feature wrappers must not satisfy coverage when the subject is absent.
+  text = re.sub(r"\b(?:tinh nang|chuc nang)\b", " ", text)
   # A result-row limit and a returned-row limit refer to the same execution constraint.
   text = re.sub(r"\bdong ket qua\b", "dong tra ve", text)
   for pattern, expansion in (
@@ -36,6 +38,26 @@ def terms(text: str) -> list:
   if "san tim" in text or "san lung" in text:
     text += " threat hunting"
   return [word for word in re.findall(r"[a-z0-9_]+", text) if word not in STOP_WORDS]
+
+
+def feature_scope(question: str) -> str:
+  """Explicit product names override prior conversation context and incidental word matches."""
+  question = normalize(question)
+  for pattern, path in (
+    (r"\b(?:saved queries|truy van da luu)\b", "threat-hunting/saved-queries"),
+    (r"\bthreat hunting\b", "threat-hunting/"),
+    (r"\bsql user guide\b", "threat-hunting/sql-user-guide"),
+  ):
+    if re.search(pattern, question):
+      return "https://docs.cmctelecom.io/vi/secops/" + path
+  # An input labelled Search inside another screen is not the Search product feature.
+  if re.search(r"\b(?:search|(?:tinh nang|chuc nang) tim kiem)\b", question) and not re.search(
+    r"\bo search\b", question
+  ):
+    return "https://docs.cmctelecom.io/vi/secops/search/"
+  if re.search(r"\bsiem\b", question):
+    return "https://docs.cmctelecom.io/vi/secops/siem-overview"
+  return ""
 
 
 class KnowledgeBase:
@@ -73,12 +95,16 @@ class KnowledgeBase:
 
   def search(self, question: str, page: str = "") -> list:
     normalized = normalize(question)
+    scope = feature_scope(question)
     query = set(terms(question))
     if not query:
       return []
     results = []
     for index, (chunk, document) in enumerate(zip(self.chunks, self.documents)):
-      if page and chunk["url"].split("#")[0] != page:
+      page_url = chunk["url"].split("#")[0]
+      if page and page_url != page:
+        continue
+      if scope and (not page_url.startswith(scope) if scope.endswith("/") else page_url != scope):
         continue
       coverage = len(query & document.keys()) / len(query)
       if coverage < 0.65:
@@ -111,9 +137,9 @@ class KnowledgeBase:
     page = ""
     # Resolve follow-up questions within the last cited page; explicit topics start a new search.
     previous = [turn.content for turn in request.history if turn.role == "user"]
-    if not re.search(r"\b(?:siem|threat hunting)\b", normalize(request.message)):
+    if not feature_scope(request.message):
       for question in previous:
-        if re.search(r"\b(?:siem|threat hunting)\b", normalize(question)):
+        if feature_scope(question):
           page = ""
         prior = self.search(question, page) or self.search(question)
         if prior:

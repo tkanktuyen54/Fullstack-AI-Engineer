@@ -22,6 +22,7 @@ DEFAULT_URLS = [
     "threat-hunting/new-query",
     "threat-hunting/saved-queries",
     "threat-hunting/sql-user-guide",
+    "search/overview",
   )
 ]
 MAX_BYTES = 4_000_000
@@ -83,6 +84,8 @@ class DocumentationParser(HTMLParser):
     self.title = []
     self.title_depth = None
     self.body_depth = None
+    self.container_depth = None
+    self.article_read = False
     self.skip_depth = None
     self.heading_depth = None
     self.heading_parts = []
@@ -115,7 +118,16 @@ class DocumentationParser(HTMLParser):
       self.title_depth = depth
     classes = set(attrs.get("class", "").split())
     if tag == "div" and {"mt-8", "pb-24", "space-y-12"} <= classes:
+      self.container_depth = depth
+    elif (
+      tag == "div"
+      and self.container_depth is not None
+      and depth == self.container_depth + 1
+      and not self.article_read
+    ):
+      # The first child is the article; sibling blocks contain edit links and page navigation.
       self.body_depth = depth
+      self.article_read = True
     if self.body_depth is None:
       return
     if tag in ("script", "style", "nav", "button", "svg") and self.skip_depth is None:
@@ -202,6 +214,8 @@ def parse_document(html: str, url: str) -> list:
   title = "".join(parser.title).strip() or "CMC SecOps"
   if "/threat-hunting/" in url:
     title = "Threat Hunting · " + title
+  elif "/search/" in url:
+    title = "Search · " + title
   return [
     {
       "title": title,
@@ -240,7 +254,9 @@ def import_documents(urls: list, output: Path, fetch=fetch_document) -> dict:
 
 def main():
   parser = argparse.ArgumentParser(description="Nhập tài liệu CMC SecOps cho trợ lý hỏi đáp.")
-  parser.add_argument("urls", nargs="*", help="URL tài liệu; mặc định nhập SIEM và Threat Hunting.")
+  parser.add_argument(
+    "urls", nargs="*", help="URL tài liệu; mặc định nhập SIEM, Threat Hunting và Search."
+  )
   parser.add_argument("--output", type=Path, default=DEFAULT_PATH)
   args = parser.parse_args()
   try:

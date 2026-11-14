@@ -3,7 +3,9 @@ package com.bigproject.modules.chat.controller;
 import com.bigproject.core.security.CurrentUser;
 import com.bigproject.modules.chat.dto.ChatRequest;
 import com.bigproject.modules.chat.service.ChatService;
+import com.bigproject.modules.chat.service.EmployeeChatService;
 import com.bigproject.modules.chat.service.ModelConfigService;
+import com.bigproject.modules.employee.mcp.EmployeeTools;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.io.IOException;
@@ -11,6 +13,7 @@ import java.time.Duration;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,14 +25,17 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ChatController {
   private final ChatService chat;
   private final ModelConfigService config;
+  private final EmployeeChatService employees;
   private final long streamTimeoutMillis;
 
   public ChatController(
       ChatService chat,
       ModelConfigService config,
+      EmployeeChatService employees,
       @Value("${app.ai.stream-timeout-seconds:75}") long streamTimeoutSeconds) {
     this.chat = chat;
     this.config = config;
+    this.employees = employees;
     this.streamTimeoutMillis = Duration.ofSeconds(streamTimeoutSeconds).toMillis();
   }
 
@@ -37,8 +43,12 @@ public class ChatController {
   public SseEmitter message(
       @Valid @RequestBody ChatRequest request,
       HttpSession session,
-      @AuthenticationPrincipal CurrentUser user) {
-    var selection = config.select(session, request.provider());
+      @AuthenticationPrincipal CurrentUser user,
+      Authentication authentication) {
+    boolean employeeTopic = "employees".equals(request.topic());
+    boolean employeeAccess = EmployeeTools.authorized(authentication);
+    if (employeeTopic) EmployeeTools.requireAccess(employeeAccess);
+    var selection = employeeTopic ? null : config.select(session, request.provider());
     var state = chat.begin(session);
     var emitter = new SseEmitter(streamTimeoutMillis);
     Thread.ofVirtual()
@@ -52,16 +62,21 @@ public class ChatController {
                         .data(
                             Map.of(
                                 "message",
-                                "secops".equals(request.topic())
-                                    ? "Đang tra cứu tài liệu và tạo câu trả lời…"
-                                    : "Đang tìm khóa học phù hợp…")));
+                                employeeTopic
+                                    ? "Đang tra cứu nhân viên trong database…"
+                                    : "secops".equals(request.topic())
+                                        ? "Đang tra cứu tài liệu và tạo câu trả lời…"
+                                        : "Đang tìm khóa học phù hợp…")));
                 var reply =
-                    chat.answer(
-                        request,
-                        state,
-                        user == null ? null : user.id(),
-                        selection,
-                        (event, data) -> emitter.send(SseEmitter.event().name(event).data(data)));
+                    employeeTopic
+                        ? employees.answer(request.message(), employeeAccess)
+                        : chat.answer(
+                            request,
+                            state,
+                            user == null ? null : user.id(),
+                            selection,
+                            (event, data) ->
+                                emitter.send(SseEmitter.event().name(event).data(data)));
                 emitter.send(
                     SseEmitter.event().name("answer").data(Map.of("text", reply.message())));
                 emitter.send(SseEmitter.event().name("courses").data(reply.courses()));

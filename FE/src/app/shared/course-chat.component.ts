@@ -3,6 +3,7 @@ import {
   ElementRef,
   OnDestroy,
   computed,
+  effect,
   inject,
   signal,
   viewChild,
@@ -24,7 +25,7 @@ interface Message {
   courses: ChatCourse[];
   sources: ChatSource[];
   topic: ChatTopic;
-  answerMode?: 'course' | 'generated' | 'extractive' | 'not_found' | 'blocked';
+  answerMode?: 'course' | 'generated' | 'extractive' | 'not_found' | 'blocked' | 'tool';
   streaming?: boolean;
   modelLabel?: string;
   fallbackReason?: string;
@@ -55,24 +56,51 @@ export class CourseChatComponent implements OnDestroy {
   readonly error = signal('');
   readonly modelsLoading = signal(false);
   readonly topic = signal<ChatTopic>('courses');
+  readonly employeeAccess = computed(
+    () =>
+      this.auth.user()?.roles?.some((role) => ['HR', 'HR_APPROVER', 'ADMIN'].includes(role)) ??
+      false,
+  );
   private readonly conversations = signal<Message[]>([]);
   readonly messages = computed(() =>
     this.conversations().filter((item) => item.topic === this.topic()),
   );
   readonly prompts = computed(() =>
-    this.topic() === 'secops'
+    this.topic() === 'employees'
       ? [
-          'Threat Hunting là gì?',
-          'Các bảng dữ liệu của Threat Hunting gồm những gì?',
-          'SIEM hoạt động như thế nào?',
+          'Có bao nhiêu nhân viên?',
+          'Có bao nhiêu nhân viên đang làm việc?',
+          'Tìm nhân viên tên Nguyễn Văn An',
         ]
-      : [
-          'Liệt kê các danh mục khóa học trên Khoa',
-          'Mình mới bắt đầu học lập trình',
-          'Tìm khóa học dưới 500 nghìn',
-        ],
+      : this.topic() === 'secops'
+        ? [
+            'Threat Hunting là gì?',
+            'Các bảng dữ liệu của Threat Hunting gồm những gì?',
+            'SIEM hoạt động như thế nào?',
+          ]
+        : [
+            'Liệt kê các danh mục khóa học trên Khoa',
+            'Mình mới bắt đầu học lập trình',
+            'Tìm khóa học dưới 500 nghìn',
+          ],
   );
   question = '';
+
+  constructor() {
+    let previousUserId: number | undefined;
+    effect(() => {
+      const userId = this.auth.user()?.id;
+      if (userId !== previousUserId || !this.employeeAccess()) {
+        this.conversations.update((items) => items.filter((item) => item.topic !== 'employees'));
+        if (this.topic() === 'employees') {
+          this.controller?.abort();
+          this.topic.set('courses');
+          this.question = '';
+        }
+      }
+      previousUserId = userId;
+    });
+  }
 
   selectProvider(provider: ModelProvider): void {
     if (this.pending() || (provider === 'groq' && !this.models.config()?.groqConfigured)) return;
@@ -92,7 +120,7 @@ export class CourseChatComponent implements OnDestroy {
   }
 
   selectTopic(topic: ChatTopic): void {
-    if (this.pending()) return;
+    if (this.pending() || (topic === 'employees' && !this.employeeAccess())) return;
     this.topic.set(topic);
     this.error.set('');
     this.question = '';
@@ -121,26 +149,32 @@ export class CourseChatComponent implements OnDestroy {
 
   async send(text = this.question): Promise<void> {
     text = text.trim();
+    const topic = this.topic();
+    const employeeTopic = topic === 'employees';
     if (
       !text ||
       text.length > 2000 ||
       this.pending() ||
-      this.modelsLoading() ||
-      !this.models.config()
+      (employeeTopic && !this.employeeAccess()) ||
+      (!employeeTopic && (this.modelsLoading() || !this.models.config()))
     )
       return;
     this.question = '';
     this.error.set('');
     this.pending.set(true);
-    const topic = this.topic();
     const provider = this.models.provider();
-    const config = this.models.config()!;
-    const modelLabel =
-      provider === 'groq' ? `Groq · ${config.groqModel}` : `Local · ${config.localModel}`;
+    const config = this.models.config();
+    const modelLabel = employeeTopic
+      ? 'MCP · Nhân sự'
+      : provider === 'groq'
+        ? `Groq · ${config!.groqModel}`
+        : `Local · ${config!.localModel}`;
     this.status.set(
-      topic === 'secops'
-        ? 'Đang tra cứu tài liệu và tạo câu trả lời…'
-        : 'Đang tìm khóa học phù hợp…',
+      employeeTopic
+        ? 'Đang tra cứu nhân viên trong database…'
+        : topic === 'secops'
+          ? 'Đang tra cứu tài liệu và tạo câu trả lời…'
+          : 'Đang tìm khóa học phù hợp…',
     );
     const replyId = this.nextId++;
     this.conversations.update((items) => [

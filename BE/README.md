@@ -135,3 +135,71 @@ Nếu máy Windows báo lỗi chứng chỉ Maven `PKIX`, có thể dùng kho ch
 ```powershell
 $env:MAVEN_OPTS = '-Djavax.net.ssl.trustStoreType=Windows-ROOT -Djavax.net.ssl.trustStore=NONE'
 ```
+
+<a id="employee-mcp"></a>
+
+## MCP tra cứu nhân viên
+
+MCP server dùng [MCP Java SDK](https://java.sdk.modelcontextprotocol.io/latest/server/), transport Streamable HTTP stateless tại `POST /api/mcp/employees`. Có thể truy cập trực tiếp API `http://127.0.0.1:8081/api/mcp/employees` hoặc qua proxy frontend. Server hỗ trợ `initialize`, `tools/list`, `tools/call`; không hỗ trợ luồng GET SSE dài hạn.
+
+Ba tool chỉ đọc database đang được backend sử dụng:
+
+- `count_employees`: tổng số hồ sơ được duyệt, nhận `status` và `department` tùy chọn.
+- `search_employees`: tìm theo `query` (tên/mã; rỗng để liệt kê), có `status`, `department`, `page` tùy chọn. Mỗi trang tối đa 10 hồ sơ, trang từ 1 đến 1000; trả `total` để biết có thêm kết quả.
+- `get_employee`: đọc thông tin công việc theo `employeeCode`, ví dụ `EMP-000001`. Không tìm thấy trả lỗi tool, không tạo thông tin thay thế.
+
+`status` nhận `Active`, `Suspended`, `Terminated` hoặc bỏ trống để tính tất cả. `department` khớp toàn bộ tên phòng ban, không phân biệt chữ hoa/thường. Các truy vấn dùng SQL cố định và bind tham số; không nhận SQL từ model/client. Đơn tạo/sửa đang chờ duyệt chưa được tính vào hồ sơ hiện hành. Không thêm bảng hay thay đổi dữ liệu khi gọi tool.
+
+Tool trả `employeeCode`, `fullName`, `department`, `position`, `status`, `workEmail`, `workPhone`. Chỉ lấy liên hệ loại `Work` được đánh dấu chính. Nếu không có, các trường liên hệ là `null`; không lấy liên hệ cá nhân thay thế. Không trả CCCD, mã số thuế, ngày sinh, địa chỉ hoặc người liên hệ khẩn cấp. Giá trị các trường nhân viên phải được client xử lý như dữ liệu, không phải chỉ dẫn.
+
+Phân quyền giống API nhân viên: cần đăng nhập với `HR`, `HR_APPROVER` hoặc `ADMIN`. Đăng ký tài khoản thông thường chỉ có `STUDENT`; không tự cấp quyền nhân sự. Quản trị viên quản lý quyền qua bảng `account_role` theo quy trình hiện có, rồi người dùng đăng nhập lại. `/api/auth/me`, login và register trả thêm mảng `roles` để giao diện hiển thị mục Nhân sự. Backend vẫn kiểm tra quyền cho mỗi request, kể cả khi client tự gửi `topic: "employees"`.
+
+### Kết nối MCP client bằng STDIO
+
+Cần Node.js 24.15+ và backend đang chạy. Adapter [scripts/employee-mcp.mjs](../scripts/employee-mcp.mjs) đăng nhập bằng tài khoản của người dùng, giữ cookie/CSRF trong bộ nhớ và chuyển JSON-RPC STDIO sang MCP HTTP. Adapter không kết nối trực tiếp MySQL. Nó chỉ ghi thông điệp MCP ra stdout; lỗi khởi động được ghi ra stderr với nội dung cố định.
+
+Cấu hình MCP client, thay đường dẫn và các placeholder bằng cấu hình riêng của máy:
+
+```json
+{
+  "mcpServers": {
+    "employees": {
+      "command": "node",
+      "args": ["/absolute/path/to/project/scripts/employee-mcp.mjs"],
+      "env": {
+        "EMPLOYEE_MCP_URL": "http://127.0.0.1:8081",
+        "EMPLOYEE_MCP_EMAIL": "<EMAIL_TAI_KHOAN_HR>",
+        "EMPLOYEE_MCP_PASSWORD": "<MAT_KHAU>"
+      }
+    }
+  }
+}
+```
+
+Giữ cấu hình chứa mật khẩu ngoài Git, hoặc truyền các biến môi trường qua cơ chế lưu secret của MCP client. URL không có path, query hay thông tin đăng nhập. Adapter chỉ cho HTTP ở loopback; dùng HTTPS khi kết nối máy khác. Phiên đăng nhập hết hạn hoặc quyền bị thay đổi thì khởi động lại adapter sau khi đăng nhập/cấp quyền theo quy trình của hệ thống.
+
+Ví dụ tool call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "count_employees",
+    "arguments": {"department": "IT", "status": "Active"}
+  }
+}
+```
+
+Client HTTP trực tiếp cần cookie `JSESSIONID`, cookie `XSRF-TOKEN`, header `X-XSRF-TOKEN` và `Accept: application/json, text/event-stream`. Lấy CSRF trước login và lấy lại sau login. Các request tiếp theo gửi `MCP-Protocol-Version` theo kết quả `initialize`. Giữ CSRF bật cho MCP vì endpoint dùng phiên đăng nhập.
+
+Server kiểm tra Host/Origin, mặc định cho localhost, 127.0.0.1 và host nội bộ `backend:8080`. Khi triển khai ở tên miền khác, đặt `EMPLOYEE_MCP_ALLOWED_HOSTS` và `EMPLOYEE_MCP_ALLOWED_ORIGINS` (danh sách ngăn bằng dấu phẩy) trong môi trường backend/Compose, ví dụ thêm `api.example.com` và `https://app.example.com`.
+
+Trong ô chat, chủ đề `employees` gọi cùng lớp tool ngay trong backend sau khi kiểm tra quyền; không vòng qua HTTP và không gửi dữ liệu nhân sự đến dịch vụ AI. Luồng này dùng câu lệnh đếm/tìm/đọc có giới hạn thay vì suy đoán truy vấn SQL từ ngôn ngữ tự nhiên. Mẫu câu và cách sử dụng có ở [README gốc](../README.md#tra-cứu-nhân-sự-qua-chat-và-mcp).
+
+Kiểm thử MCP protocol trên HTTP thật, phân quyền, CSRF, bộ lọc, dữ liệu riêng tư và ô chat trong bộ test Maven. Adapter có test riêng từ thư mục gốc:
+
+```bash
+node --test scripts/employee-mcp.test.mjs
+```

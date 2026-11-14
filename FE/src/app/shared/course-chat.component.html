@@ -11,7 +11,8 @@
         <span>.</span>
       </a>
       <span id="chat-title">
-        Trợ lý AI · {{ topic() === 'secops' ? 'CMC SecOps' : 'Khóa học' }}
+        Trợ lý AI ·
+        {{ topic() === 'employees' ? 'Nhân sự' : topic() === 'secops' ? 'CMC SecOps' : 'Khóa học' }}
       </span>
       <button type="button" class="chat-close" (click)="toggle()" aria-label="Đóng tư vấn">
         ×
@@ -34,25 +35,37 @@
       >
         CMC SecOps
       </button>
+      @if (employeeAccess()) {
+        <button
+          type="button"
+          [attr.aria-pressed]="topic() === 'employees'"
+          [disabled]="pending()"
+          (click)="selectTopic('employees')"
+        >
+          Nhân sự
+        </button>
+      }
     </div>
-    <div class="chat-models">
-      <label for="chat-model">Model</label>
-      <select
-        id="chat-model"
-        [ngModel]="models.provider()"
-        (ngModelChange)="selectProvider($event)"
-        [disabled]="pending() || modelsLoading() || !models.config()"
-      >
-        <option value="local">Local · {{ models.config()?.localModel || 'Ollama' }}</option>
-        <option value="groq" [disabled]="!models.config()?.groqConfigured">
-          Groq · {{ models.config()?.groqModel || 'Chưa cấu hình' }}
-          {{ models.config()?.groqConfigured ? '' : '(cần API key)' }}
-        </option>
-      </select>
-      <a routerLink="/model-config" (click)="toggle()">Cấu hình</a>
-    </div>
-    @if (modelsLoading()) {
-      <p class="chat-model-status" role="status">Đang tải model…</p>
+    @if (topic() !== 'employees') {
+      <div class="chat-models">
+        <label for="chat-model">Model</label>
+        <select
+          id="chat-model"
+          [ngModel]="models.provider()"
+          (ngModelChange)="selectProvider($event)"
+          [disabled]="pending() || modelsLoading() || !models.config()"
+        >
+          <option value="local">Local · {{ models.config()?.localModel || 'Ollama' }}</option>
+          <option value="groq" [disabled]="!models.config()?.groqConfigured">
+            Groq · {{ models.config()?.groqModel || 'Chưa cấu hình' }}
+            {{ models.config()?.groqConfigured ? '' : '(cần API key)' }}
+          </option>
+        </select>
+        <a routerLink="/model-config" (click)="toggle()">Cấu hình</a>
+      </div>
+      @if (modelsLoading()) {
+        <p class="chat-model-status" role="status">Đang tải model…</p>
+      }
     }
     @if (messages().length === 0) {
       <div class="chat-intro">
@@ -73,13 +86,21 @@
           <h2>
             Chào {{ auth.user()?.name?.split(' ')?.[0] || 'bạn' }},
             <br />
-            {{ topic() === 'secops' ? 'bạn muốn tìm hiểu điều gì?' : 'hôm nay bạn muốn học gì?' }}
+            {{
+              topic() === 'employees'
+                ? 'bạn muốn tra cứu nhân viên nào?'
+                : topic() === 'secops'
+                  ? 'bạn muốn tìm hiểu điều gì?'
+                  : 'hôm nay bạn muốn học gì?'
+            }}
           </h2>
           <p>
             {{
-              topic() === 'secops'
-                ? 'Tra cứu tài liệu SIEM và Threat Hunting của CMC Telecom.'
-                : 'Cùng tìm một khóa học phù hợp với bạn.'
+              topic() === 'employees'
+                ? 'Đếm và tìm thông tin công việc từ hồ sơ nhân viên đã được duyệt.'
+                : topic() === 'secops'
+                  ? 'Tra cứu tài liệu SIEM và Threat Hunting của CMC Telecom.'
+                  : 'Cùng tìm một khóa học phù hợp với bạn.'
             }}
           </p>
         </div>
@@ -87,7 +108,7 @@
           @for (prompt of prompts(); track prompt) {
             <button
               type="button"
-              [disabled]="modelsLoading() || !models.config()"
+              [disabled]="topic() !== 'employees' && (modelsLoading() || !models.config())"
               (click)="send(prompt)"
             >
               {{ prompt }}
@@ -123,6 +144,8 @@
                 </p>
               } @else if (message.answerMode === 'extractive') {
                 <p class="chat-answer-note">Trích trực tiếp từ tài liệu.</p>
+              } @else if (message.answerMode === 'tool') {
+                <p class="chat-answer-note">Nguồn: database nhân sự tại thời điểm tra cứu.</p>
               }
               @if (message.sources.length) {
                 <div class="chat-sources" aria-label="Nguồn tài liệu">
@@ -187,7 +210,13 @@
           }}
         </div>
         <label class="visually-hidden" for="chat-question">
-          {{ topic() === 'secops' ? 'Câu hỏi về CMC SecOps' : 'Câu hỏi tư vấn khóa học' }}
+          {{
+            topic() === 'employees'
+              ? 'Câu hỏi về nhân viên'
+              : topic() === 'secops'
+                ? 'Câu hỏi về CMC SecOps'
+                : 'Câu hỏi tư vấn khóa học'
+          }}
         </label>
         <textarea
           #questionInput
@@ -197,24 +226,34 @@
           maxlength="2000"
           rows="2"
           [placeholder]="
-            topic() === 'secops'
-              ? 'Hỏi về SIEM, Threat Hunting, truy vấn SQL…'
-              : 'Hỏi về khóa học, lộ trình, học phí…'
+            topic() === 'employees'
+              ? 'Hỏi số lượng, tìm theo tên hoặc mã EMP-000001…'
+              : topic() === 'secops'
+                ? 'Hỏi về SIEM, Threat Hunting, truy vấn SQL…'
+                : 'Hỏi về khóa học, lộ trình, học phí…'
           "
-          [disabled]="pending() || modelsLoading() || !models.config()"
+          [disabled]="
+            pending() || (topic() !== 'employees' && (modelsLoading() || !models.config()))
+          "
           (keydown.enter)="onEnter($event)"
         ></textarea>
         <div class="chat-composer-actions">
           <span>
             {{
-              topic() === 'secops'
-                ? 'Tìm hiểu tính năng từ tài liệu.'
-                : 'Chọn đúng khóa học, bắt đầu điều mới.'
+              topic() === 'employees'
+                ? 'Tra cứu hồ sơ nhân viên đã được duyệt.'
+                : topic() === 'secops'
+                  ? 'Tìm hiểu tính năng từ tài liệu.'
+                  : 'Chọn đúng khóa học, bắt đầu điều mới.'
             }}
           </span>
           <button
             type="submit"
-            [disabled]="pending() || modelsLoading() || !models.config() || !question.trim()"
+            [disabled]="
+              pending() ||
+              (topic() !== 'employees' && (modelsLoading() || !models.config())) ||
+              !question.trim()
+            "
             aria-label="Gửi câu hỏi"
           >
             ↑
@@ -223,9 +262,11 @@
       </form>
       <p class="chat-footnote">
         {{
-          topic() === 'secops'
-            ? 'Trả lời dựa trên tài liệu đã nhập. Mở nguồn để đối chiếu bản mới nhất.'
-            : 'Thông tin tham khảo. Xác nhận giá tại trang khóa học.'
+          topic() === 'employees'
+            ? 'Dữ liệu lấy trực tiếp từ database. Tra cứu nhân sự không cần gọi model.'
+            : topic() === 'secops'
+              ? 'Trả lời dựa trên tài liệu đã nhập. Mở nguồn để đối chiếu bản mới nhất.'
+              : 'Thông tin tham khảo. Xác nhận giá tại trang khóa học.'
         }}
       </p>
     </div>

@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { ChatEvent, readChatEvents } from './chat-stream';
 import { ModelProvider } from './model-config.service';
 
-export type ChatTopic = 'courses' | 'secops';
+export type ChatTopic = 'courses' | 'secops' | 'employees';
 
 export interface ChatSource {
   title: string;

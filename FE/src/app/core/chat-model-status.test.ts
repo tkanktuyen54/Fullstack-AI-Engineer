@@ -29,3 +29,10 @@ test('Provider errors have actionable messages and unknown codes are never echoe
   assert.match(modelFailureMessage('invalid_generation'), /đã phản hồi/);
   assert(!modelFailureMessage('private-upstream-content').includes('private-upstream-content'));
 });
+
+test('Employee tool results show the database tool rather than a selected model', () => {
+  assert.equal(
+    answerModelLabel({ answerMode: 'tool', engine: 'employee-mcp', modelLabel: 'Groq · model' }),
+    'MCP · Nhân sự',
+  );
+});

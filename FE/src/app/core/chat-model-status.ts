@@ -7,6 +7,7 @@ export interface ModelStatus {
 
 export function answerModelLabel(status: ModelStatus): string {
   if (!status.answerMode) return `Đang xử lý · ${status.modelLabel || 'AI'}`;
+  if (status.answerMode === 'tool') return 'MCP · Nhân sự';
   if (status.answerMode === 'generated') {
     for (const [provider, label] of [
       ['groq', 'Groq'],

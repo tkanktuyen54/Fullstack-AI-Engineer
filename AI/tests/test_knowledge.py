@@ -43,6 +43,18 @@ def test_import_extracts_only_article_and_preserves_code_and_citation_anchors():
   assert "Không phải câu trả lời" not in str(chunks)
 
 
+def test_import_does_not_include_edit_controls_or_neighbouring_page_descriptions():
+  html = HTML.replace(
+    "</div></div><footer>",
+    '</div><div role="separator">Chỉnh sửa trang này hoặc Báo cáo sự cố</div><div><a data-slot="link">Create Report: nội dung trang khác</a></div></div><footer>',
+  )
+  chunks = parse_document(html, "https://docs.cmctelecom.io/vi/secops/search/overview")
+  assert all(chunk["title"].startswith("Search · ") for chunk in chunks)
+  assert "Chỉnh sửa" not in str(chunks)
+  assert "Báo cáo sự cố" not in str(chunks)
+  assert "Create Report" not in str(chunks)
+
+
 @pytest.mark.parametrize(
   "url",
   [
@@ -125,6 +137,58 @@ def test_follow_up_uses_document_context_and_explicit_topic_can_change(knowledge
 
 
 @pytest.mark.parametrize(
+  "question",
+  [
+    "Tính năng Search",
+    "Tính năng Search là gì?",
+    "Search là gì?",
+    "Tinh nang Search",
+    "Chức năng Search là gì?",
+  ],
+)
+@pytest.mark.parametrize("history", [[], [Turn(role="user", content="Threat Hunting là gì?")]])
+def test_search_feature_uses_its_own_overview_even_after_threat_hunting(
+  knowledge, question, history
+):
+  reply = knowledge.answer(AdviceRequest(message=question, topic="secops", history=history))
+  assert reply.answerMode == "extractive"
+  assert reply.sources[0].url.startswith("https://docs.cmctelecom.io/vi/secops/search/overview")
+  assert "Query search" in reply.message and "Text search" in reply.message
+  assert "Raw logs" in reply.message and "Events" in reply.message
+  assert "Threat Hunting" not in reply.message
+
+
+def test_missing_search_documents_abstain_instead_of_answering_about_a_different_feature(knowledge):
+  payload = {
+    "version": 1,
+    "fetchedAt": knowledge.updated_at,
+    "pages": [page for page in knowledge.pages if "/search/" not in page],
+    "chunks": [chunk for chunk in knowledge.chunks if "/search/" not in chunk["url"]],
+  }
+  missing = KnowledgeBase(payload)
+  reply = missing.answer(AdviceRequest(message="Tính năng Search", topic="secops"))
+  assert reply.answerMode == "not_found"
+  assert reply.sources == []
+
+
+def test_search_follow_up_and_search_input_in_saved_queries_are_distinct(knowledge):
+  reply = knowledge.answer(
+    AdviceRequest(
+      message="Các phương thức tìm kiếm gồm những gì?",
+      topic="secops",
+      history=[Turn(role="user", content="Tính năng Search")],
+    )
+  )
+  assert "/search/overview" in reply.sources[0].url
+  assert "Query search" in reply.message and "Text search" in reply.message
+  reply = knowledge.answer(
+    AdviceRequest(message="Ô Search trong Saved Queries dùng làm gì?", topic="secops")
+  )
+  assert "/threat-hunting/saved-queries" in reply.sources[0].url
+  assert "theo tên" in reply.message
+
+
+@pytest.mark.parametrize(
   "question", ["Cách nấu phở bò?", "Threat Hunting hỗ trợ Kafka KRaft không?"]
 )
 def test_missing_information_returns_no_citation_or_fabricated_answer(knowledge, question):
@@ -144,7 +208,7 @@ def test_api_routes_secops_independently_of_courses_and_requires_service_token(m
     assert response.status_code == 200
     assert "chủ động truy vấn" in response.json()["message"]
     assert response.json()["sources"][0]["url"].startswith(DEFAULT_URLS[1])
-    assert client.get("/health").json()["knowledgePages"] == 5
+    assert client.get("/health").json()["knowledgePages"] == len(DEFAULT_URLS)
     body["topic"] = "unknown"
     assert client.post("/v1/advise", json=body).status_code == 422
 

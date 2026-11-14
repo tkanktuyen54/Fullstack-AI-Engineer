@@ -148,6 +148,20 @@ Smoke test tạo tài khoản và đơn demo mới, kiểm tra cookie/CSRF thậ
 
 Xem cấu trúc và API chi tiết ở [BE/README.md](BE/README.md); hướng dẫn Angular ở [FE/README.md](FE/README.md).
 
+## Tra cứu nhân sự qua chat và MCP
+
+Tài khoản có quyền `HR`, `HR_APPROVER` hoặc `ADMIN` thấy mục **Nhân sự** trong ô chat sau khi đăng nhập. Có thể hỏi:
+
+- “Có bao nhiêu nhân viên?”
+- “Có bao nhiêu nhân viên đang làm việc?”
+- “Phòng IT có bao nhiêu nhân viên?”
+- “Thông tin nhân viên EMP-000001”
+- “Tìm nhân viên tên Nguyễn Văn An”
+
+Kết quả được truy vấn trực tiếp từ MySQL, chỉ tính hồ sơ đã được duyệt trong bảng `employee`. Thông tin gồm mã, họ tên, phòng ban, chức vụ, trạng thái và liên hệ **công việc**. Chat nhân sự dùng bộ nhận diện các câu lệnh trên và cùng lớp tool với MCP, không gọi model, không gửi hồ sơ sang Groq và không cần bật Python/Ollama. Bộ lọc ngoài phòng ban/trạng thái chưa được hỗ trợ; câu hỏi đếm không được nhận diện sẽ nhận hướng dẫn thay vì trả tổng sai.
+
+Backend cung cấp MCP Streamable HTTP tại `/api/mcp/employees`, kèm adapter STDIO cho các MCP client. Xem [cách kết nối và phân quyền](BE/README.md#employee-mcp).
+
 ## Format code
 
 - FE: trong `FE`, chạy `npm.cmd run format`; kiểm tra bằng `npm.cmd run format:check`.

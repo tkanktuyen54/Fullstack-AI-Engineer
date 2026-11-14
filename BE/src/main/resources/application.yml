@@ -31,6 +31,9 @@ server:
 
 app:
   demo-checkout-enabled: ${DEMO_CHECKOUT_ENABLED:false}
+  mcp:
+    allowed-hosts: ${EMPLOYEE_MCP_ALLOWED_HOSTS:localhost:*,127.0.0.1:*,backend:8080}
+    allowed-origins: ${EMPLOYEE_MCP_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
   ai:
     base-url: ${AI_SERVICE_URL:http://127.0.0.1:8000}
     token: ${AI_SERVICE_TOKEN:}

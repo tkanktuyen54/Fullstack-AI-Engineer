@@ -39,7 +39,9 @@ Mở **Trợ lý AI** trên website, chọn **CMC SecOps**, rồi nhập câu h�
 - `Làm sao chạy truy vấn mới trong Threat Hunting?`
 - `Một truy vấn trả về tối đa bao nhiêu dòng?`
 
-Kho `data/secops.json` có sẵn bản nội dung tiếng Việt của 5 trang chính thức: SIEM overview, Threat Hunting overview, Run a new query, Saved Queries và SQL User Guide. Metadata `fetchedAt` ghi thời điểm nhập thực tế. Chế độ này tìm đoạn tài liệu bằng BM25, hỗ trợ tiếng Việt có/không dấu, rồi dùng **Qwen3 0.6B chạy local qua Ollama** để tổng hợp câu trả lời kèm nguồn. Câu hỏi tiếp nối sử dụng ngữ cảnh trang vừa hỏi; lịch sử SecOps và khóa học được lưu riêng trong cùng phiên.
+Kho `data/secops.json` có sẵn bản nội dung tiếng Việt của 6 trang chính thức: SIEM overview, Threat Hunting overview, Run a new query, Saved Queries, SQL User Guide và Search overview. Metadata `fetchedAt` ghi thời điểm nhập thực tế. Chế độ này tìm đoạn tài liệu bằng BM25, hỗ trợ tiếng Việt có/không dấu, rồi dùng model được chọn để tổng hợp câu trả lời kèm nguồn. Câu hỏi tiếp nối sử dụng ngữ cảnh trang vừa hỏi; lịch sử SecOps và khóa học được lưu riêng trong cùng phiên.
+
+Câu `Tính năng Search` hoặc `Search là gì?` được tra trong nhóm tài liệu Search, gồm Query search, Text search, Raw logs và Events. Tên tính năng được nêu rõ sẽ thay ngữ cảnh cũ, nên hỏi Search sau Threat Hunting không tiếp tục dùng nguồn Threat Hunting. Cụm chung `tính năng`/`chức năng` không được tính là bằng chứng khớp nội dung. Nếu kho thiếu trang của tính năng được hỏi, trợ lý trả `not_found`; không dùng một trang khác chỉ vì có cùng từ chung. Ô Search bên trong Saved Queries vẫn thuộc ngữ cảnh Saved Queries. Đây là tra cứu kho đã nhập, chưa tự tìm website trực tuyến theo mỗi câu hỏi.
 
 Luồng mới:
 
@@ -108,7 +110,7 @@ Trên macOS/Linux, dùng `python -m advisor.ingestion.documents` trong virtualen
 python -m advisor.ingestion.documents https://docs.cmctelecom.io/vi/secops/siem-overview https://docs.cmctelecom.io/vi/secops/threat-hunting/overview --output data/secops.json
 ```
 
-Lệnh nhập **thay thế toàn bộ kho** bằng danh sách trang được chỉ định; mặc định là 5 trang nêu trên. Nếu một trang tải/phân tích lỗi, kho cũ được giữ nguyên. Công cụ chỉ tải HTTPS đúng tên miền và đường dẫn CMC SecOps, giới hạn kích thước/thời gian tải, bỏ menu, script và nút điều khiển. Nếu website đổi cấu trúc HTML, cần cập nhật bộ phân tích trước khi nhập lại.
+Lệnh nhập **thay thế toàn bộ kho** bằng danh sách trang được chỉ định; mặc định là 6 trang nêu trên. Nếu một trang tải/phân tích lỗi, kho cũ được giữ nguyên. Công cụ chỉ tải HTTPS đúng tên miền và đường dẫn CMC SecOps, giới hạn kích thước/thời gian tải, bỏ menu, script, nút điều khiển, liên kết sửa trang và thẻ chuyển sang tài liệu bên cạnh. Nếu website đổi cấu trúc HTML, cần cập nhật bộ phân tích trước khi nhập lại.
 
 Khởi động lại dịch vụ AI sau khi nhập để nạp bản mới. Biến `AI_KNOWLEDGE_PATH` cho phép chọn file kho khác; đường dẫn mặc định được tính từ thư mục mã AI, không phụ thuộc thư mục chạy lệnh. `/health` có `knowledgePages`, `knowledgeChunks`, `knowledgeUpdatedAt`. Docker Compose mount kho từ `AI/data/secops.json`, vì vậy cập nhật file trên máy rồi restart `advisor`.
 
