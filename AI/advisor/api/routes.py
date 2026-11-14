@@ -23,7 +23,7 @@ def runtime(request: AdviceRequest, http: Request, token):
   state = http.app.state
   validate_request(request, token, state.settings.service_token)
   if request.topic == "secops" and state.knowledge is None:
-    raise HTTPException(status_code=503, detail="Kho tài liệu CMC SecOps chưa được nhập.")
+    raise HTTPException(status_code=503, detail="Kho tài liệu chưa được nhập.")
   return state
 
 

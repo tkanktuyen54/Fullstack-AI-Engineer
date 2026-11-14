@@ -97,7 +97,7 @@
       "id": "unknown-food",
       "question": "Cách nấu phở bò?",
       "expectedMode": "not_found",
-      "referenceAnswer": "Không có thông tin trong kho tài liệu CMC SecOps."
+      "referenceAnswer": "Không có thông tin trong kho tài liệu."
     },
     {
       "id": "unknown-pricing",

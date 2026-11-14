@@ -1,4 +1,4 @@
-# Trợ lý AI — khóa học và tài liệu CMC SecOps
+# Trợ lý AI — Tuyen Pham - Tư vấn khóa học
 
 Angular mở sidebar bên phải → Spring Boot giữ phiên, CSRF và dữ liệu website → Python tư vấn → SSE trả kết quả và thẻ khóa học.
 
@@ -14,7 +14,7 @@ Cấu hình áp dụng riêng cho phiên trình duyệt, gồm cả khách chưa
 
 Groq được gọi từ Python qua HTTPS tại `https://api.groq.com/openai/v1/chat/completions`, dùng Bearer token và JSON mode theo [tài liệu Groq](https://console.groq.com/docs/text-chat). Khi chọn Groq, câu hỏi và các đoạn dữ liệu truy xuất liên quan được gửi ra dịch vụ này; key không được đưa vào prompt, lịch sử chat hay phản hồi về FE. Không ghi key thật vào repository hoặc file ví dụ.
 
-Cả hai chủ đề đều hỗ trợ lựa chọn này: CMC SecOps giữ cơ chế đối chiếu nguồn và streaming; khóa học dùng model để diễn đạt câu trả lời từ kết quả truy xuất, còn danh sách khóa học, giá và quyền học vẫn do hệ thống quyết định. Nếu model lỗi, bị giới hạn hoặc đầu ra không đạt kiểm tra, chat dùng kết quả truy xuất và hiển thị ghi chú. Các kiểm tra dựa trên quy tắc không bảo đảm mọi diễn đạt đều đúng nghĩa.
+Cả hai chủ đề đều hỗ trợ lựa chọn này: hỏi đáp tài liệu giữ cơ chế đối chiếu nguồn và streaming; khóa học dùng model để diễn đạt câu trả lời từ kết quả truy xuất, còn danh sách khóa học, giá và quyền học vẫn do hệ thống quyết định. Nếu model lỗi, bị giới hạn hoặc đầu ra không đạt kiểm tra, chat dùng kết quả truy xuất và hiển thị ghi chú. Các kiểm tra dựa trên quy tắc không bảo đảm mọi diễn đạt đều đúng nghĩa.
 
 Groq đã [ngừng hỗ trợ `llama-3.3-70b-versatile` và `llama-3.1-8b-instant` cho Free/Developer từ 16/08/2026](https://console.groq.com/docs/deprecations). Nếu phiên cũ đã lưu một trong hai model này, sửa Model Groq thành `openai/gpt-oss-20b` rồi lưu lại; để trống ô key để giữ key trong phiên. Tài khoản Enterprise có hợp đồng riêng có thể vẫn được dùng model cũ. Việc đổi mặc định của ứng dụng không tự thay lựa chọn đã lưu của người dùng.
 
@@ -30,9 +30,9 @@ Log AI có sự kiện `llm_error` với mã HTTP và mã lỗi thuộc danh sá
 
 Xem [vận hành bằng Docker, readiness, log/metrics và cấu hình production](docs/operations.md), cùng [bộ đánh giá RAG](evals/README.md). Chưa thiết lập CI theo nhu cầu hiện tại.
 
-## Hỏi đáp tài liệu CMC SecOps
+## Hỏi đáp tài liệu
 
-Mở **Trợ lý AI** trên website, chọn **CMC SecOps**, rồi nhập câu hỏi như:
+Mở **Trợ lý AI** trên website, chọn **Tài liệu**, rồi nhập câu hỏi như:
 
 - `Threat Hunting là gì?`
 - `Các bảng dữ liệu của Threat Hunting gồm những gì?`
@@ -110,7 +110,7 @@ Trên macOS/Linux, dùng `python -m advisor.ingestion.documents` trong virtualen
 python -m advisor.ingestion.documents https://docs.cmctelecom.io/vi/secops/siem-overview https://docs.cmctelecom.io/vi/secops/threat-hunting/overview --output data/secops.json
 ```
 
-Lệnh nhập **thay thế toàn bộ kho** bằng danh sách trang được chỉ định; mặc định là 6 trang nêu trên. Nếu một trang tải/phân tích lỗi, kho cũ được giữ nguyên. Công cụ chỉ tải HTTPS đúng tên miền và đường dẫn CMC SecOps, giới hạn kích thước/thời gian tải, bỏ menu, script, nút điều khiển, liên kết sửa trang và thẻ chuyển sang tài liệu bên cạnh. Nếu website đổi cấu trúc HTML, cần cập nhật bộ phân tích trước khi nhập lại.
+Lệnh nhập **thay thế toàn bộ kho** bằng danh sách trang được chỉ định; mặc định là 6 trang nêu trên. Nếu một trang tải/phân tích lỗi, kho cũ được giữ nguyên. Công cụ chỉ tải HTTPS đúng tên miền `docs.cmctelecom.io` và đường dẫn `/vi/secops/`, giới hạn kích thước/thời gian tải, bỏ menu, script, nút điều khiển, liên kết sửa trang và thẻ chuyển sang tài liệu bên cạnh. Nếu website đổi cấu trúc HTML, cần cập nhật bộ phân tích trước khi nhập lại.
 
 Khởi động lại dịch vụ AI sau khi nhập để nạp bản mới. Biến `AI_KNOWLEDGE_PATH` cho phép chọn file kho khác; đường dẫn mặc định được tính từ thư mục mã AI, không phụ thuộc thư mục chạy lệnh. `/health` có `knowledgePages`, `knowledgeChunks`, `knowledgeUpdatedAt`. Docker Compose mount kho từ `AI/data/secops.json`, vì vậy cập nhật file trên máy rồi restart `advisor`.
 

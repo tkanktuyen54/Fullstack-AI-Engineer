@@ -19,7 +19,10 @@ class RagService:
   def _prepare(self, request):
     if contains_instruction_override(request.message):
       return AdviceReply(
-        message="Mình hỗ trợ hỏi đáp tài liệu CMC SecOps. Bạn hãy hỏi về tính năng hoặc cách sử dụng trong tài liệu.",
+        message=(
+          "Mình hỗ trợ hỏi đáp tài liệu. "
+          "Bạn hãy hỏi về tính năng hoặc cách sử dụng trong tài liệu."
+        ),
         intent="documentation",
         courses=[],
         engine="secops-guardrail",

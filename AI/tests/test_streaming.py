@@ -125,7 +125,7 @@ def test_final_validation_failure_replaces_provisional_text_with_source(done, re
     reply = events[-1]["reply"]
     assert reply["answerMode"] == "extractive"
     assert reply["fallbackReason"] == "invalid_generation"
-    assert reply["message"].startswith("Theo tài liệu CMC SecOps")
+    assert reply["message"].startswith("Theo tài liệu — ")
     assert stream.closed
   finally:
     llm.close()

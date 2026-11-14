@@ -42,17 +42,14 @@
   color: var(--ink);
 }
 .chat-brand {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 750;
-  letter-spacing: -1px;
+  letter-spacing: -0.4px;
+  line-height: 1.4;
   color: var(--green);
-  white-space: nowrap;
-}
-.chat-header > span {
-  font-size: 11px;
-  color: #758078;
 }
 .chat-close {
+  flex-shrink: 0;
   margin-left: auto;
   background: transparent;
   color: #55625a;

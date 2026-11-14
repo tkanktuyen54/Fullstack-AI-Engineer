@@ -170,7 +170,10 @@ class KnowledgeBase:
     selected = self.retrieve(request) if passages is None else passages
     if not selected:
       return AdviceReply(
-        message="Mình chưa tìm thấy thông tin đủ phù hợp trong tài liệu CMC SecOps đã nhập. Bạn hãy nêu rõ tính năng hoặc nội dung cần tra cứu.",
+        message=(
+          "Mình chưa tìm thấy thông tin đủ phù hợp trong tài liệu đã nhập. "
+          "Bạn hãy nêu rõ tính năng hoặc nội dung cần tra cứu."
+        ),
         intent="documentation",
         courses=[],
         engine="secops-bm25",
@@ -179,7 +182,7 @@ class KnowledgeBase:
     best = selected[0]
     text = "\n\n".join(chunk["text"] for chunk in selected)
     return AdviceReply(
-      message=f"Theo tài liệu CMC SecOps — {best['heading']}:\n\n{text}",
+      message=f"Theo tài liệu — {best['heading']}:\n\n{text}",
       intent="documentation",
       courses=[],
       engine="secops-bm25",

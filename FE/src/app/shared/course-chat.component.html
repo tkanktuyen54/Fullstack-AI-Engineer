@@ -6,11 +6,14 @@
     (keydown.escape)="toggle()"
   >
     <header class="chat-header">
-      <a class="chat-brand" routerLink="/" aria-label="Tuyen Pham, trang chủ">Tuyen Pham</a>
-      <span id="chat-title">
-        Trợ lý AI ·
-        {{ topic() === 'employees' ? 'Nhân sự' : topic() === 'secops' ? 'CMC SecOps' : 'Khóa học' }}
-      </span>
+      <a
+        id="chat-title"
+        class="chat-brand"
+        routerLink="/"
+        aria-label="Tuyen Pham - Tư vấn khóa học, trang chủ"
+      >
+        Tuyen Pham - Tư vấn khóa học
+      </a>
       <button type="button" class="chat-close" (click)="toggle()" aria-label="Đóng tư vấn">
         ×
       </button>
@@ -30,7 +33,7 @@
         [disabled]="pending()"
         (click)="selectTopic('secops')"
       >
-        CMC SecOps
+        Tài liệu
       </button>
       @if (employeeAccess()) {
         <button
@@ -96,7 +99,7 @@
               topic() === 'employees'
                 ? 'Đếm và tìm thông tin công việc từ hồ sơ nhân viên đã được duyệt.'
                 : topic() === 'secops'
-                  ? 'Tra cứu tài liệu SIEM và Threat Hunting của CMC Telecom.'
+                  ? 'Tra cứu tài liệu SIEM và Threat Hunting.'
                   : 'Cùng tìm một khóa học phù hợp với bạn.'
             }}
           </p>
@@ -203,9 +206,7 @@
         <div class="chat-context">
           <span class="chat-context-icon" aria-hidden="true">t</span>
           {{
-            topic() === 'secops'
-              ? 'Tài liệu chính thức CMC SecOps'
-              : 'Tư vấn từ danh mục khóa học Tuyen Pham'
+            topic() === 'secops' ? 'Tài liệu tham khảo' : 'Tư vấn từ danh mục khóa học Tuyen Pham'
           }}
         </div>
         <label class="visually-hidden" for="chat-question">
@@ -213,7 +214,7 @@
             topic() === 'employees'
               ? 'Câu hỏi về nhân viên'
               : topic() === 'secops'
-                ? 'Câu hỏi về CMC SecOps'
+                ? 'Câu hỏi về tài liệu'
                 : 'Câu hỏi tư vấn khóa học'
           }}
         </label>

@@ -116,7 +116,7 @@ Mở http://localhost:4200. Angular proxy `/api` về backend nên cookie và CS
 
 Để dùng chatbot khi chạy local, chạy thêm dịch vụ Python tại cổng `8000` theo [AI/README.md](AI/README.md). Docker Compose BE tự chạy dịch vụ này. Không cần API key của nhà cung cấp LLM bên ngoài.
 
-Trong **Trợ lý AI**, chọn **Khóa học** để tư vấn danh mục hoặc **CMC SecOps** để hỏi đáp tài liệu SIEM/Threat Hunting. Luồng SecOps dùng BM25 + Qwen3 0.6B qua Ollama local, kiểm tra câu trả lời và đính kèm nguồn. Nếu model chưa sẵn sàng hoặc đầu ra không đạt kiểm tra, trợ lý trả trích đoạn có nguồn. Xem cách chạy model, cấu hình và cập nhật 5 trang tài liệu tiếng Việt trong [hướng dẫn AI](AI/README.md#hỏi-đáp-tài-liệu-cmc-secops).
+Trong **Trợ lý AI**, chọn **Khóa học** để tư vấn danh mục hoặc **Tài liệu** để hỏi đáp tài liệu SIEM/Threat Hunting. Luồng hỏi đáp tài liệu dùng BM25 + Qwen3 0.6B qua Ollama local, kiểm tra câu trả lời và đính kèm nguồn. Nếu model chưa sẵn sàng hoặc đầu ra không đạt kiểm tra, trợ lý trả trích đoạn có nguồn. Xem cách chạy model, cấu hình và cập nhật 5 trang tài liệu tiếng Việt trong [hướng dẫn AI](AI/README.md#hỏi-đáp-tài-liệu).
 
 macOS/Linux: đặt `JAVA_HOME` tới JDK 21, dùng `./mvnw spring-boot:run`, `npm ci` và `npm start`.
 

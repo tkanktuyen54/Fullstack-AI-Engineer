@@ -211,7 +211,7 @@ def parse_document(html: str, url: str) -> list:
   parser.close()
   if not parser.sections:
     raise ValueError(f"Không tìm thấy nội dung tài liệu; cần kiểm tra cấu trúc trang: {url}")
-  title = "".join(parser.title).strip() or "CMC SecOps"
+  title = "".join(parser.title).strip() or "Tài liệu"
   if "/threat-hunting/" in url:
     title = "Threat Hunting · " + title
   elif "/search/" in url:
@@ -253,7 +253,7 @@ def import_documents(urls: list, output: Path, fetch=fetch_document) -> dict:
 
 
 def main():
-  parser = argparse.ArgumentParser(description="Nhập tài liệu CMC SecOps cho trợ lý hỏi đáp.")
+  parser = argparse.ArgumentParser(description="Nhập tài liệu cho trợ lý hỏi đáp.")
   parser.add_argument(
     "urls", nargs="*", help="URL tài liệu; mặc định nhập SIEM, Threat Hunting và Search."
   )
