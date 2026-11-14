@@ -81,19 +81,21 @@ class CoursePlatformIntegrationTests {
     mvc.perform(get("/v3/api-docs"))
         .andExpect(status().isOk())
         .andExpect(header().doesNotExist("Content-Disposition"))
-        .andExpect(jsonPath("$.info.title").value("Khoa Course API"));
+        .andExpect(jsonPath("$.info.title").value("Tuyen Pham Course API"));
     mvc.perform(get("/v3/api-docs").param("download", "true"))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(
-            header().string("Content-Disposition", "attachment; filename=\"khoa-openapi.json\""))
+            header()
+                .string("Content-Disposition", "attachment; filename=\"tuyen-pham-openapi.json\""))
         .andExpect(jsonPath("$.openapi").isNotEmpty())
         .andExpect(jsonPath("$.paths['/api/auth/login']").exists())
         .andExpect(jsonPath("$.paths['/api/courses/{slug}']").exists());
     mvc.perform(get("/v3/api-docs.yaml").param("download", "true"))
         .andExpect(status().isOk())
         .andExpect(
-            header().string("Content-Disposition", "attachment; filename=\"khoa-openapi.yaml\""))
+            header()
+                .string("Content-Disposition", "attachment; filename=\"tuyen-pham-openapi.yaml\""))
         .andExpect(content().string(containsString("openapi:")))
         .andExpect(content().string(containsString("/api/auth/login:")));
     mvc.perform(get("/swagger-ui/swagger-initializer.js"))

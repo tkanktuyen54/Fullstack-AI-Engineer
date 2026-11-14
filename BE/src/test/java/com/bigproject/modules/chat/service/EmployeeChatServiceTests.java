@@ -32,6 +32,14 @@ class EmployeeChatServiceTests {
         .containsEntry("employeeCode", "EMP-000001");
   }
 
+  @Test
+  void passesZeroPaddedCodesToTheLiveLookupTool() {
+    var plan = EmployeeChatService.plan("Thông tin nhân viên EMP-0000050");
+    assertThat(plan.tool()).isEqualTo("get_employee");
+    assertThat(plan.arguments())
+        .containsExactlyInAnyOrderEntriesOf(Map.of("employeeCode", "EMP-0000050"));
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {

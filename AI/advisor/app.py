@@ -9,7 +9,7 @@ from .core.telemetry import Telemetry
 
 
 def create_app() -> FastAPI:
-  application = FastAPI(title="Khoa AI assistant", lifespan=lifespan)
+  application = FastAPI(title="Tuyen Pham AI assistant", lifespan=lifespan)
   application.state.telemetry = Telemetry()
   application.add_middleware(OperationalMiddleware)
   application.include_router(router)

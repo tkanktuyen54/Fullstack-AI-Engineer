@@ -8,6 +8,6 @@ public class HomeController {
 
   @GetMapping("/")
   public String hello() {
-    return "Khoa API — /swagger-ui.html";
+    return "Tuyen Pham - Tư vấn khóa học API — /swagger-ui.html";
   }
 }

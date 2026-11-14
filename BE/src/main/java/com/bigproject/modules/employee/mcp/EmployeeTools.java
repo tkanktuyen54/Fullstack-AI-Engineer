@@ -59,12 +59,17 @@ public class EmployeeTools {
     if ("get_employee".equals(name)) {
       String code = text(args, "employeeCode", 40).toUpperCase(java.util.Locale.ROOT);
       if (!code.matches("EMP-[0-9]{6,18}")) throw invalid("Mã nhân viên có dạng EMP-000001.");
-      return read(COLUMNS + " WHERE e.employee_code = ?", code).stream()
-          .findFirst()
-          .orElseThrow(
-              () ->
-                  new ResponseStatusException(
-                      HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên " + code + "."));
+      var exact = read(COLUMNS + " WHERE e.employee_code = ?", code).stream().findFirst();
+      if (exact.isPresent()) return exact.get();
+      // Creation uses EMP-%06d. Accept surplus leading zeroes without overriding an exact code.
+      String canonical = "EMP-%06d".formatted(Long.parseLong(code.substring(4)));
+      if (!canonical.equals(code)) {
+        var normalized =
+            read(COLUMNS + " WHERE e.employee_code = ?", canonical).stream().findFirst();
+        if (normalized.isPresent()) return normalized.get();
+      }
+      throw new ResponseStatusException(
+          HttpStatus.NOT_FOUND, "Không tìm thấy nhân viên " + code + ".");
     }
     String status = text(args, "status", 30);
     String department = text(args, "department", 200);

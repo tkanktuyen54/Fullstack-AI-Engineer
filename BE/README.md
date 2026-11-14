@@ -1,4 +1,4 @@
-# Khoa API
+# Tuyen Pham - Tư vấn khóa học · API
 
 Backend Java 21 / Spring Boot 4, JDBC và MySQL. Giữ cấu trúc `core + modules` của project gốc.
 
@@ -61,8 +61,8 @@ API: `http://localhost:8080`. Swagger: `http://localhost:8080/swagger-ui.html`.
 
 Swagger hiển thị liên kết **Download OpenAPI Document** ngay dưới tiêu đề để tải spec đang được sinh từ các controller:
 
-- JSON: `http://localhost:8080/v3/api-docs?download=true` → `khoa-openapi.json`.
-- YAML: `http://localhost:8080/v3/api-docs.yaml?download=true` → `khoa-openapi.yaml`.
+- JSON: `http://localhost:8080/v3/api-docs?download=true` → `tuyen-pham-openapi.json`.
+- YAML: `http://localhost:8080/v3/api-docs.yaml?download=true` → `tuyen-pham-openapi.yaml`.
 
 Đường dẫn không có `?download=true` vẫn trả spec trực tiếp. Profile `prod` tắt cả Swagger và các endpoint OpenAPI.
 
@@ -146,9 +146,11 @@ Ba tool chỉ đọc database đang được backend sử dụng:
 
 - `count_employees`: tổng số hồ sơ được duyệt, nhận `status` và `department` tùy chọn.
 - `search_employees`: tìm theo `query` (tên/mã; rỗng để liệt kê), có `status`, `department`, `page` tùy chọn. Mỗi trang tối đa 10 hồ sơ, trang từ 1 đến 1000; trả `total` để biết có thêm kết quả.
-- `get_employee`: đọc thông tin công việc theo `employeeCode`, ví dụ `EMP-000001`. Không tìm thấy trả lỗi tool, không tạo thông tin thay thế.
+- `get_employee`: đọc thông tin công việc theo `employeeCode`, ví dụ `EMP-000001`. Ưu tiên mã khớp chính xác; nếu không có mới bỏ số 0 thừa ở đầu theo định dạng mã tự sinh, ví dụ `EMP-0000050` có thể tra được `EMP-000050`. Kết quả luôn hiển thị mã thực tế trong database. Không tìm thấy trả lỗi tool, không tạo thông tin thay thế.
 
 `status` nhận `Active`, `Suspended`, `Terminated` hoặc bỏ trống để tính tất cả. `department` khớp toàn bộ tên phòng ban, không phân biệt chữ hoa/thường. Các truy vấn dùng SQL cố định và bind tham số; không nhận SQL từ model/client. Đơn tạo/sửa đang chờ duyệt chưa được tính vào hồ sơ hiện hành. Không thêm bảng hay thay đổi dữ liệu khi gọi tool.
+
+Mỗi lần gọi tool đều truy vấn database hiện tại qua JDBC; không đọc một bản JSON danh sách nhân viên và không cache kết quả hồ sơ. Nhân viên mới được duyệt hoặc cập nhật đã commit sẽ được truy vấn ở lần hỏi kế tiếp, không cần training, export JSON hay khởi động lại backend. Các file kết quả demo/seed chỉ ghi nhận lần tạo dữ liệu, không tham gia luồng trả lời. Vector database không cần thiết cho đếm hoặc tìm mã chính xác; cần kiểm tra đúng mã và đúng trạng thái duyệt trước.
 
 Tool trả `employeeCode`, `fullName`, `department`, `position`, `status`, `workEmail`, `workPhone`. Chỉ lấy liên hệ loại `Work` được đánh dấu chính. Nếu không có, các trường liên hệ là `null`; không lấy liên hệ cá nhân thay thế. Không trả CCCD, mã số thuế, ngày sinh, địa chỉ hoặc người liên hệ khẩn cấp. Giá trị các trường nhân viên phải được client xử lý như dữ liệu, không phải chỉ dẫn.
 

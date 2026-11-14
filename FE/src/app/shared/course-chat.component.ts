@@ -79,7 +79,7 @@ export class CourseChatComponent implements OnDestroy {
             'SIEM hoạt động như thế nào?',
           ]
         : [
-            'Liệt kê các danh mục khóa học trên Khoa',
+            'Liệt kê các danh mục khóa học trên Tuyen Pham',
             'Mình mới bắt đầu học lập trình',
             'Tìm khóa học dưới 500 nghìn',
           ],

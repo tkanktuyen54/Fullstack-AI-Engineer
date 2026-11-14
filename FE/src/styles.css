@@ -245,13 +245,11 @@ p {
   display: inline-flex;
   align-items: center;
   line-height: 1;
-  font-size: 35px;
+  font-size: 28px;
   letter-spacing: -2px;
   font-weight: 800;
   color: var(--green);
-}
-.brand-dot {
-  color: #82a758;
+  white-space: nowrap;
 }
 .brand-symbol {
   width: 35px;
@@ -1455,7 +1453,7 @@ p {
   padding-bottom: 35px;
 }
 .footer-top .brand {
-  font-size: 30px;
+  font-size: 24px;
 }
 .footer-top p {
   font-size: 10px;
@@ -2777,7 +2775,7 @@ progress::-moz-progress-bar {
     gap: 12px;
   }
   .brand {
-    font-size: 31px;
+    font-size: 24px;
   }
   .brand-symbol {
     width: 30px;
@@ -3146,7 +3144,7 @@ progress::-moz-progress-bar {
     font-size: 10px;
   }
   .brand {
-    font-size: 30px;
+    font-size: 20px;
   }
   .brand-symbol {
     width: 28px;
@@ -3465,7 +3463,7 @@ progress::-moz-progress-bar {
     font-size: 9px;
   }
   .footer-top .brand {
-    font-size: 29px;
+    font-size: 22px;
   }
   .footer-top p {
     font-size: 9px;

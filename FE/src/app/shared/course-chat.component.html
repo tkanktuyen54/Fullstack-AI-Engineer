@@ -6,10 +6,7 @@
     (keydown.escape)="toggle()"
   >
     <header class="chat-header">
-      <a class="chat-brand" routerLink="/" aria-label="Khoa, trang chủ">
-        khoa
-        <span>.</span>
-      </a>
+      <a class="chat-brand" routerLink="/" aria-label="Tuyen Pham, trang chủ">Tuyen Pham</a>
       <span id="chat-title">
         Trợ lý AI ·
         {{ topic() === 'employees' ? 'Nhân sự' : topic() === 'secops' ? 'CMC SecOps' : 'Khóa học' }}
@@ -131,7 +128,9 @@
           @if (message.text || message.courses.length) {
             <article class="chat-message" [class.chat-user]="message.role === 'user'">
               <span class="chat-speaker">
-                {{ message.role === 'user' ? 'Bạn' : '✦ Khoa · ' + answerModelLabel(message) }}
+                {{
+                  message.role === 'user' ? 'Bạn' : '✦ Tuyen Pham · ' + answerModelLabel(message)
+                }}
               </span>
               @if (message.text) {
                 <p>{{ message.text }}</p>
@@ -202,11 +201,11 @@
       }
       <form class="chat-composer" (ngSubmit)="send()">
         <div class="chat-context">
-          <span class="chat-context-icon" aria-hidden="true">k</span>
+          <span class="chat-context-icon" aria-hidden="true">t</span>
           {{
             topic() === 'secops'
               ? 'Tài liệu chính thức CMC SecOps'
-              : 'Tư vấn từ danh mục khóa học Khoa'
+              : 'Tư vấn từ danh mục khóa học Tuyen Pham'
           }}
         </div>
         <label class="visually-hidden" for="chat-question">

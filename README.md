@@ -1,4 +1,4 @@
-# Khoa. — Website bán khóa học
+# Tuyen Pham - Tư vấn khóa học
 
 Các thành phần trong cùng repository:
 

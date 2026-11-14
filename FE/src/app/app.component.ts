@@ -17,10 +17,9 @@ import { CourseChatComponent } from './shared/course-chat.component';
     </div>
     <header class="site-header">
       <div class="container nav">
-        <a class="brand" routerLink="/" aria-label="Khoa, trang chủ">
-          <span class="brand-symbol" aria-hidden="true">k</span>
-          khoa
-          <span class="brand-dot">.</span>
+        <a class="brand" routerLink="/" aria-label="Tuyen Pham, trang chủ">
+          <span class="brand-symbol" aria-hidden="true">t</span>
+          Tuyen Pham
         </a>
         <nav aria-label="Điều hướng chính">
           <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active">
@@ -58,20 +57,17 @@ import { CourseChatComponent } from './shared/course-chat.component';
     <footer class="site-footer">
       <div class="container footer-top">
         <div>
-          <a class="brand" routerLink="/">
-            khoa
-            <span class="brand-dot">.</span>
-          </a>
-          <p>Học điều mới. Mở lối riêng.</p>
+          <a class="brand" routerLink="/">Tuyen Pham</a>
+          <p>Tư vấn khóa học</p>
         </div>
         <div class="footer-links">
           <a routerLink="/">Khám phá khóa học</a>
           <a routerLink="/my-learning">Góc học tập</a>
-          <a routerLink="/register">Tham gia cùng Khoa</a>
+          <a routerLink="/register">Tham gia cùng Tuyen Pham</a>
         </div>
       </div>
       <div class="container footer-bottom">
-        <span>© 2026 Khoa. Không ngừng học, không ngừng lớn.</span>
+        <span>© 2026 Tuyen Pham - Tư vấn khóa học.</span>
         <span>
           Được tạo nên cho những người ham học
           <span aria-hidden="true">✳</span>

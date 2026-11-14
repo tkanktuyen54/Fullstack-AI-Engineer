@@ -145,6 +145,108 @@ class EmployeeMcpIntegrationTests {
   }
 
   @Test
+  void surplusLeadingZeroesResolveTheStoredCodeButNeverOverrideAnExactMatch() throws Exception {
+    assertThat(
+            call("get_employee", Map.of("employeeCode", "EMP-0000001"))
+                .at("/structuredContent/employeeCode")
+                .asText())
+        .isEqualTo("EMP-000001");
+    assertThat(
+            call("get_employee", Map.of("employeeCode", "EMP-000000000000000001"))
+                .at("/structuredContent/employeeCode")
+                .asText())
+        .isEqualTo("EMP-000001");
+    String publicId = UUID.randomUUID().toString();
+    try {
+      insertEmployee(publicId, "EMP-0000001", "Exact employee code", "Exact code department");
+      var exact = call("get_employee", Map.of("employeeCode", "EMP-0000001"));
+      assertThat(exact.at("/structuredContent/employeeCode").asText()).isEqualTo("EMP-0000001");
+      assertThat(exact.at("/structuredContent/fullName").asText()).isEqualTo("Exact employee code");
+    } finally {
+      jdbc.update("DELETE FROM employee WHERE public_id = ?", publicId);
+    }
+  }
+
+  @Test
+  void newAndUpdatedEmployeesAreVisibleImmediatelyWithoutAJsonSnapshotOrRestart() throws Exception {
+    String publicId = UUID.randomUUID().toString();
+    String name = "New employee " + publicId;
+    String updatedName = "Updated employee " + publicId;
+    String department = "Live lookup " + publicId;
+    String code = "EMP-900001";
+    assertThat(call("get_employee", Map.of("employeeCode", code)).get("isError").asBoolean())
+        .isTrue();
+    assertThat(
+            call("count_employees", Map.of("department", department))
+                .at("/structuredContent/total")
+                .asLong())
+        .isZero();
+    try {
+      insertEmployee(publicId, code, name, department);
+      assertThat(
+              call("count_employees", Map.of("department", department))
+                  .at("/structuredContent/total")
+                  .asLong())
+          .isEqualTo(1);
+      assertThat(
+              call("search_employees", Map.of("query", name))
+                  .at("/structuredContent/items/0/employeeCode")
+                  .asText())
+          .isEqualTo(code);
+      assertThat(
+              call("get_employee", Map.of("employeeCode", code))
+                  .at("/structuredContent/fullName")
+                  .asText())
+          .isEqualTo(name);
+      assertThat(employeeChat("Thông tin nhân viên EMP-0900001"))
+          .contains(name, code, "event:done");
+
+      jdbc.update("UPDATE employee SET full_name = ? WHERE public_id = ?", updatedName, publicId);
+      assertThat(
+              call("get_employee", Map.of("employeeCode", code))
+                  .at("/structuredContent/fullName")
+                  .asText())
+          .isEqualTo(updatedName);
+      assertThat(
+              call("search_employees", Map.of("query", name))
+                  .at("/structuredContent/total")
+                  .asLong())
+          .isZero();
+      assertThat(employeeChat("Thông tin nhân viên " + code))
+          .contains(updatedName)
+          .doesNotContain(name);
+    } finally {
+      jdbc.update("DELETE FROM employee WHERE public_id = ?", publicId);
+    }
+    assertThat(call("get_employee", Map.of("employeeCode", code)).get("isError").asBoolean())
+        .isTrue();
+  }
+
+  private void insertEmployee(String publicId, String code, String name, String department) {
+    jdbc.update(
+        """
+        INSERT INTO employee(public_id, employee_code, full_name, department, position,
+          status, profile_json, created_at) VALUES (?, ?, ?, ?, 'Developer', 'Active', '{}', CURRENT_TIMESTAMP)
+        """,
+        publicId,
+        code,
+        name,
+        department);
+  }
+
+  private String employeeChat(String question) throws Exception {
+    var response =
+        post(
+            hr,
+            "/api/chat/messages",
+            json.writeValueAsString(Map.of("topic", "employees", "message", question)),
+            true,
+            null);
+    assertThat(response.statusCode()).isEqualTo(200);
+    return response.body();
+  }
+
+  @Test
   void rejectsUnauthorizedCallsCsrfBadOriginsAndInvalidArguments() throws Exception {
     var anonymous = new Actor(0, HttpClient.newHttpClient(), new CookieManager());
     assertThat(post(anonymous, EmployeeMcpConfig.ENDPOINT, "{}", false, null).statusCode())

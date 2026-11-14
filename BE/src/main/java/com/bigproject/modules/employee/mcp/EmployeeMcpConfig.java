@@ -92,7 +92,7 @@ public class EmployeeMcpConfig {
                 json),
             tool(
                 "get_employee",
-                "Get an employee's work profile by exact employee code.",
+                "Get an employee's live work profile by code. Prefer an exact match; if absent, normalize surplus leading zeroes to the generated EMP-000001 format. Return the actual stored code.",
                 Map.of("employeeCode", Map.of("type", "string", "pattern", "^EMP-[0-9]{6,18}$")),
                 List.of("employeeCode"),
                 employees,

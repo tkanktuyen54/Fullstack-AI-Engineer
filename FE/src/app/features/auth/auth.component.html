@@ -31,7 +31,7 @@
     <a class="back-link" routerLink="/">← Về trang khám phá</a>
     <div class="auth-form-heading">
       <span class="auth-wave" aria-hidden="true">{{ register ? '✦' : '↗' }}</span>
-      <h2>{{ register ? 'Bắt đầu cùng Khoa.' : 'Chào mừng trở lại.' }}</h2>
+      <h2>{{ register ? 'Bắt đầu cùng Tuyen Pham.' : 'Chào mừng trở lại.' }}</h2>
       <p>
         {{
           register
@@ -104,7 +104,7 @@
       </button>
     </form>
     <p class="auth-switch">
-      {{ register ? 'Đã có tài khoản?' : 'Bạn mới đến Khoa?' }}
+      {{ register ? 'Đã có tài khoản?' : 'Bạn mới đến Tuyen Pham?' }}
       <a [routerLink]="register ? '/login' : '/register'" [queryParams]="{ next: next }">
         {{ register ? 'Đăng nhập' : 'Tạo tài khoản miễn phí' }}
       </a>

@@ -33,9 +33,9 @@ public class OpenApiDownloadFilter extends OncePerRequestFilter {
       String path = request.getRequestURI().substring(request.getContextPath().length());
       String filename = null;
       if (apiDocsPath.equals(path)) {
-        filename = "khoa-openapi.json";
+        filename = "tuyen-pham-openapi.json";
       } else if ((apiDocsPath + ".yaml").equals(path)) {
-        filename = "khoa-openapi.yaml";
+        filename = "tuyen-pham-openapi.yaml";
       }
       if (filename != null) {
         response.setHeader(

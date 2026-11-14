@@ -1,4 +1,4 @@
-# Khoa Frontend
+# Tuyen Pham - Tư vấn khóa học · Frontend
 
 Angular 22, standalone components, signals, router và HttpClient. Giao diện tiếng Việt, hỗ trợ desktop và điện thoại.
 

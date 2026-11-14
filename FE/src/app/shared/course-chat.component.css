@@ -42,13 +42,11 @@
   color: var(--ink);
 }
 .chat-brand {
-  font-size: 25px;
+  font-size: 20px;
   font-weight: 750;
-  letter-spacing: -1.5px;
+  letter-spacing: -1px;
   color: var(--green);
-}
-.chat-brand span {
-  color: #82a758;
+  white-space: nowrap;
 }
 .chat-header > span {
   font-size: 11px;

@@ -13,14 +13,14 @@ public class OpenApiConfig {
     return new OpenAPI()
         .info(
             new Info()
-                .title("Khoa Course API")
+                .title("Tuyen Pham Course API")
                 .version("1.0.0")
                 .description(
                     """
                     [Download OpenAPI Document (JSON)](../v3/api-docs?download=true) · \
                     [Download OpenAPI Document (YAML)](../v3/api-docs.yaml?download=true)
 
-                    Tài liệu API cho website bán khóa học Khoa.
+                    Tài liệu API cho Tuyen Pham - Tư vấn khóa học.
 
                     **Đăng nhập trên Swagger:** gọi `GET /api/auth/csrf` trước, sau đó \
                     gọi `POST /api/auth/register` để tạo tài khoản hoặc `POST /api/auth/login` \
